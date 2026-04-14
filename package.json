@@ -1,0 +1,24 @@
+{
+  "name": "money-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply money-tracker --local",
+    "db:migrate:remote": "wrangler d1 migrations apply money-tracker --remote",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "hono": "4.13.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260820.0",
+    "drizzle-kit": "0.31.10",
+    "typescript": "^5.8.2",
+    "wrangler": "^4.0.0"
+  }
+}
