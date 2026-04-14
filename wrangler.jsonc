@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "money-tracker",
+  "main": "src/index.tsx",
+  "compatibility_date": "2025-08-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./public"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "money-tracker",
+      "database_id": "d391fa8e-efdb-4ca5-a38d-fea0b62b2597",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
