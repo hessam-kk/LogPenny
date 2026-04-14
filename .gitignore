@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Cloudflare local development state
+.wrangler/
+
+# Generated Cloudflare runtime types
+worker-configuration.d.ts
+
+# Local environment and secrets
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Local Freebuff metadata
+.freebuff/
