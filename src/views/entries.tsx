@@ -13,9 +13,10 @@ interface EntriesViewProps {
   year: number;
   month: number;
   cal?: 'g' | 'j';
+  itemId?: number | null;
 }
 
-export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, entries, year, month, cal = 'g' }) => {
+export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, entries, year, month, cal = 'g', itemId = null }) => {
   const currency = account.defaultCurrency;
   const income = entries.filter((e) => e.direction === 'in').reduce((s, e) => s + e.amount, 0);
   const expense = entries.filter((e) => e.direction === 'out').reduce((s, e) => s + e.amount, 0);
@@ -23,11 +24,12 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
   const previous = shiftDisplayedMonth(year, month, -1, cal);
   const next = shiftDisplayedMonth(year, month, 1, cal);
   const calQ = cal === 'j' ? 'cal=j&' : '';
-  const acctQ = `account_id=${account.id}&${calQ}`;
+  const itemQ = itemId ? `item_id=${itemId}&` : '';
+  const acctQ = `account_id=${account.id}&${itemQ}${calQ}`;
 
   return (
     <>
-      <TopBar accounts={accounts} activeAccount={account} cal={cal} />
+      <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/entries" />
       <Tabs active="entries" accountId={account.id} cal={cal} />
       <div class="app-shell">
         <div class="month-nav">
@@ -53,7 +55,7 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
         </div>
         {entries.length === 0 ? (
           <div class="card empty">
-            <div class="empty-icon">📝</div>
+            <div class="empty-icon" aria-hidden="true">＋</div>
             <div class="empty-title">No entries yet</div>
             <div>Tap the + button to add your first entry for {formatMonthYear(year, month, cal)}.</div>
           </div>
