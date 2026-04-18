@@ -178,9 +178,11 @@ app.patch('/:id', async (c) => {
 
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'));
+  if (!Number.isInteger(id) || id < 1) return fail(c, 'invalid id', 422);
   const db = createDb((c.env as any).DB as D1Database);
-  await db.delete(schema.entries).where(eq(schema.entries.id, id));
-  return ok(c, { id });
+  const [deleted] = await db.delete(schema.entries).where(eq(schema.entries.id, id)).returning({ id: schema.entries.id });
+  if (!deleted) return fail(c, 'entry not found', 404);
+  return ok(c, deleted);
 });
 
 export default app;
