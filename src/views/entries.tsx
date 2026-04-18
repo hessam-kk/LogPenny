@@ -74,6 +74,7 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
           </div>
           <form id="entry-form" class="modal-body">
             <input type="hidden" id="entry-id" name="id" />
+            <input type="hidden" id="context-item-id" value={itemId ?? ''} />
             <div class="form-group">
               <label class="form-label" for="amount">Amount</label>
               <input class="form-control" type="text" id="amount" name="amount" placeholder="640" inputmode="decimal" required />
@@ -124,6 +125,7 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
               </div>
             </div>
           </form>
+          <div id="entry-status" class="form-status" role="status" aria-live="polite"></div>
           <div class="modal-foot">
             <button type="button" class="btn btn-danger btn-sm" id="delete-btn" hidden onclick="deleteEntry()">Delete</button>
             <button type="button" class="btn" onclick="closeModal()">Cancel</button>
