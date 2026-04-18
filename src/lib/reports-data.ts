@@ -57,15 +57,21 @@ export async function fetchBreakdown(
 }
 
 export async function fetchTrends(
-  db: D1Database, accountId: number, year: number,
+  db: D1Database, accountId: number, year: number, fromMonth?: string, toMonth?: string,
 ): Promise<TrendPoint[]> {
+  const from = fromMonth ? `${fromMonth}-01` : `${year}-01-01`;
+  const endMonth = toMonth ?? `${year}-12`;
+  const endYear = Number(endMonth.slice(0, 4));
+  const endMo = Number(endMonth.slice(5, 7));
+  const endDay = new Date(endYear, endMo, 0).getDate();
+  const to = `${endMonth}-${String(endDay).padStart(2, '0')}`;
   const result = await db.prepare(
     `SELECT substr(date, 1, 7) AS month,
        SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END) AS income,
        SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END) AS expense
        FROM entries WHERE account_id = ? AND date >= ? AND date <= ?
        GROUP BY substr(date, 1, 7) ORDER BY month`,
-  ).bind(accountId, `${year}-01-01`, `${year}-12-31`).all<TrendPoint>();
+  ).bind(accountId, from, to).all<TrendPoint>();
   return (result.results ?? []).map((r) => ({
     month: r.month, income: r.income ?? 0, expense: r.expense ?? 0,
   }));
