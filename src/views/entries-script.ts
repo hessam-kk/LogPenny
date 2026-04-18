@@ -89,7 +89,7 @@ async function deleteEntry() {
   const res = await fetch('/api/v1/entries/' + id, { method: 'DELETE' });
   const json = await res.json();
   if (json.ok) { window.location.reload(); }
-  else { document.getElementById('entry-status').textContent = json.error || 'Could not delete entry.'; button.disabled = false; button.textContent = 'Delete'; }
+  else { document.getElementById('entry-status').textContent = json.error || 'Could not delete entry.'; button.disabled = false; button.textContent = 'Delete entry'; }
 }
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
