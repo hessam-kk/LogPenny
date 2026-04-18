@@ -104,6 +104,7 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
               <textarea class="form-control" id="item-notes" name="notes" dir="auto"></textarea>
             </div>
           </form>
+          <div id="item-status" class="form-status" role="status" aria-live="polite"></div>
           <div class="modal-foot">
             <button type="button" class="btn btn-danger btn-sm" id="item-delete-btn" hidden onclick="deleteItem()">Delete</button>
             <button type="button" class="btn" onclick="closeItemModal()">Cancel</button>
@@ -142,6 +143,11 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
           }
 
           async function submitItem() {
+            const saveButton = document.querySelector('#item-modal .btn-primary');
+            const status = document.getElementById('item-status');
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving…';
+            status.textContent = '';
             const id = document.getElementById('item-id').value;
             const form = document.getElementById('item-form');
             const body = {
@@ -160,17 +166,20 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
             });
             const json = await res.json();
             if (json.ok) { window.location.reload(); }
-            else { alert(json.error || 'Failed'); }
+            else { status.textContent = json.error || 'Could not save item.'; saveButton.disabled = false; saveButton.textContent = 'Save'; }
           }
 
           async function deleteItem() {
             const id = document.getElementById('item-id').value;
             if (!id) return;
-            if (!confirm('Delete this item and all its entries?')) return;
+            if (!confirm('Archive this item? Its entries will be kept.')) return;
+            const button = document.getElementById('item-delete-btn');
+            button.disabled = true;
+            button.textContent = 'Deleting…';
             const res = await fetch('/api/v1/items/' + id, { method: 'DELETE' });
             const json = await res.json();
             if (json.ok) { window.location.reload(); }
-            else { alert(json.error || 'Failed'); }
+            else { document.getElementById('item-status').textContent = json.error || 'Could not delete item.'; button.disabled = false; button.textContent = 'Delete'; }
           }
 
           window.openItemModal = openItemModal;
@@ -178,6 +187,7 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
           window.closeItemModal = closeItemModal;
           window.submitItem = submitItem;
           window.deleteItem = deleteItem;
+          document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeItemModal(); });
         `,
       }} />
     </>
