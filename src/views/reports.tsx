@@ -59,7 +59,7 @@ export const ReportsView: FC<ReportsViewProps> = ({
 
   return (
     <>
-      <TopBar accounts={accounts} activeAccount={account} cal={cal} />
+      <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/reports" />
       <Tabs active="reports" accountId={account.id} cal={cal} />
 
       <div class="app-shell">
