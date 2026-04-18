@@ -155,6 +155,9 @@ export const STYLES3 = `
 .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-primary:hover { filter: brightness(1.08); color: #fff; }
 .btn-danger { color: var(--expense); }
+.btn-danger-solid { background: var(--expense); color: #fff; border-color: var(--expense); }
+.btn-danger-solid:hover { background: color-mix(in srgb, var(--expense) 88%, #000); color: #fff; }
+.form-status { min-height: 20px; padding: 0 20px; color: var(--expense); font-size: 13px; font-weight: 500; }
 .btn-danger:hover { background: var(--expense-soft); border-color: var(--expense); color: var(--expense); }
 .btn-sm { padding: 6px 12px; font-size: 13px; }
 .fab {

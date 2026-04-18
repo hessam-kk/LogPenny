@@ -55,6 +55,8 @@ export const Layout: FC<PropsWithChildren> = ({ children }) => {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#6366f1" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="alternate icon" href="/favicon.svg" />
         <title>LogPenny — Money Tracker</title>
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link
