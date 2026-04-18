@@ -127,7 +127,7 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
           </form>
           <div id="entry-status" class="form-status" role="status" aria-live="polite"></div>
           <div class="modal-foot">
-            <button type="button" class="btn btn-danger btn-sm" id="delete-btn" hidden onclick="deleteEntry()">Delete</button>
+            <button type="button" class="btn btn-danger-solid btn-sm" id="delete-btn" hidden onclick="deleteEntry()">Delete entry</button>
             <button type="button" class="btn" onclick="closeModal()">Cancel</button>
             <button type="button" class="btn btn-primary" onclick="submitEntry()" id="submit-btn">Save</button>
           </div>
