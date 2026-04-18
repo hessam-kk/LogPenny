@@ -43,6 +43,11 @@ function toggleTtd() { document.getElementById('ttd-section').hidden = !document
 function hideTtd() { document.getElementById('ttd-section').hidden = true; }
 
 async function submitEntry() {
+  const submitButton = document.getElementById('submit-btn');
+  const status = document.getElementById('entry-status');
+  submitButton.disabled = true;
+  submitButton.textContent = 'Saving…';
+  status.textContent = '';
   const ttdText = document.getElementById('ttd-text').value.trim();
   if (ttdText) {
     const res = await fetch('/api/v1/entries/quick', {
@@ -51,7 +56,8 @@ async function submitEntry() {
       body: JSON.stringify({ accountId: ACCOUNT_ID, text: ttdText, year: YEAR, month: MONTH }),
     });
     const json = await res.json();
-    if (json.ok) { window.location.reload(); } else { alert(json.error || 'Failed'); }
+    if (json.ok) { window.location.reload(); }
+    else { status.textContent = json.error || 'Could not save entries.'; submitButton.disabled = false; submitButton.textContent = 'Save'; }
     return;
   }
   const id = document.getElementById('entry-id').value;
@@ -63,22 +69,27 @@ async function submitEntry() {
     title: form.title.value,
     date: form.date.value,
     notes: form.notes.value || undefined,
-    itemId: form.itemId.value || undefined,
+    itemId: form.itemId.value || document.getElementById('context-item-id').value || undefined,
   };
   const url = id ? '/api/v1/entries/' + id : '/api/v1/entries';
   const method = id ? 'PATCH' : 'POST';
   const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const json = await res.json();
-  if (json.ok) { window.location.reload(); } else { alert(json.error || 'Failed'); }
+  if (json.ok) { window.location.reload(); }
+  else { status.textContent = json.error || 'Could not save entry.'; submitButton.disabled = false; submitButton.textContent = id ? 'Update' : 'Save'; }
 }
 
 async function deleteEntry() {
   const id = document.getElementById('entry-id').value;
   if (!id) return;
   if (!confirm('Delete this entry?')) return;
+  const button = document.getElementById('delete-btn');
+  button.disabled = true;
+  button.textContent = 'Deleting…';
   const res = await fetch('/api/v1/entries/' + id, { method: 'DELETE' });
   const json = await res.json();
-  if (json.ok) { window.location.reload(); } else { alert(json.error || 'Failed'); }
+  if (json.ok) { window.location.reload(); }
+  else { document.getElementById('entry-status').textContent = json.error || 'Could not delete entry.'; button.disabled = false; button.textContent = 'Delete'; }
 }
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
