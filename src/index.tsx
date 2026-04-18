@@ -53,6 +53,7 @@ app.get('/entries', async (c) => {
   const year = c.req.query('year') ? Number(c.req.query('year')) : now.getFullYear();
   const month = c.req.query('month') ? Number(c.req.query('month')) : now.getMonth() + 1;
   const cal = c.req.query('cal') === 'j' ? 'j' : 'g';
+  const itemId = c.req.query('item_id') ? Number(c.req.query('item_id')) : null;
   const from = `${year}-${String(month).padStart(2, '0')}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
@@ -60,14 +61,15 @@ app.get('/entries', async (c) => {
   const items = allItems.filter((i: any) => i.accountId === activeAccount.id);
   const allEntries = await d.select().from(schema.entries).all();
   const entries = allEntries
-    .filter((r: any) => r.accountId === activeAccount.id && r.date >= from && r.date <= to)
+    .filter((r: any) => r.accountId === activeAccount.id && r.date >= from && r.date <= to && (!itemId || r.itemId === itemId))
     .sort((a: any, b: any) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  return c.render(<EntriesView accounts={accounts} account={activeAccount} items={items} entries={entries} year={year} month={month} cal={cal} />);
+  return c.render(<EntriesView accounts={accounts} account={activeAccount} items={items} entries={entries} year={year} month={month} cal={cal} itemId={itemId} />);
 });
 
 app.get('/items', async (c) => {
   const { accounts, activeAccount } = await loadContext(c);
   if (!activeAccount) return c.redirect('/setup');
+  const cal = c.req.query('cal') === 'j' ? 'j' : 'g';
   const d = db(c);
   const allItems = await d.select().from(schema.items).all();
   const items = allItems.filter((i: any) => i.accountId === activeAccount.id && !i.archivedAt);
@@ -79,7 +81,7 @@ app.get('/items', async (c) => {
   const totalsMap = new Map(
     (totalsRows.results ?? []).map((r: any) => [r.item_id, { income: r.income ?? 0, expense: r.expense ?? 0, entryCount: r.entry_count ?? 0 }]),
   );
-  return c.render(<ItemsView accounts={accounts} account={activeAccount} items={items.map((i: any) => ({ ...i, totals: totalsMap.get(i.id) ?? null }))} />);
+  return c.render(<ItemsView accounts={accounts} account={activeAccount} cal={cal} items={items.map((i: any) => ({ ...i, totals: totalsMap.get(i.id) ?? null }))} />);
 });
 
 app.get('/reports', async (c) => {
