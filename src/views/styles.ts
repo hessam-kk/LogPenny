@@ -245,6 +245,9 @@ export const STYLES6 = `
 @media (min-width: 900px) { .items-grid { grid-template-columns: repeat(3, 1fr); } }
 .item-card { padding: 18px; }
 .item-card-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.item-card-actions { display: flex; gap: 8px; margin-top: 16px; }
+.item-card-actions .btn { flex: 1; }
+
 .item-card-totals { display: flex; gap: 16px; margin-top: 12px; font-size: 13px; }
 .item-card-totals span { color: var(--text-dim); }
 .item-card-net { font-weight: 700; font-variant-numeric: tabular-nums; }
