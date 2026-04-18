@@ -116,9 +116,15 @@ app.patch('/:id', async (c) => {
 
 app.delete('/:id', async (c) => {
   const id = Number(c.req.param('id'));
+  if (!Number.isInteger(id) || id < 1) return fail(c, 'invalid id', 422);
   const db = createDb((c.env as any).DB as D1Database);
-  await db.delete(schema.items).where(eq(schema.items.id, id));
-  return ok(c, { id });
+  const [archived] = await db
+    .update(schema.items)
+    .set({ archivedAt: new Date() })
+    .where(eq(schema.items.id, id))
+    .returning({ id: schema.items.id, archivedAt: schema.items.archivedAt });
+  if (!archived) return fail(c, 'item not found', 404);
+  return ok(c, archived);
 });
 
 export default app;
