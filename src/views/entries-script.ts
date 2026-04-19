@@ -50,14 +50,20 @@ async function submitEntry() {
   status.textContent = '';
   const ttdText = document.getElementById('ttd-text').value.trim();
   if (ttdText) {
-    const res = await fetch('/api/v1/entries/quick', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accountId: ACCOUNT_ID, text: ttdText, year: YEAR, month: MONTH }),
-    });
-    const json = await res.json();
-    if (json.ok) { window.location.reload(); }
-    else { status.textContent = json.error || 'Could not save entries.'; submitButton.disabled = false; submitButton.textContent = 'Save'; }
+    try {
+      const res = await fetch('/api/v1/entries/quick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: ACCOUNT_ID, text: ttdText, year: YEAR, month: MONTH }),
+      });
+      const json = await res.json();
+      if (json.ok) { window.location.reload(); }
+      else { status.textContent = json.error || 'Could not save entries.'; submitButton.disabled = false; submitButton.textContent = 'Save'; }
+    } catch {
+      status.textContent = 'Network error. Please try again.';
+      submitButton.disabled = false;
+      submitButton.textContent = 'Save';
+    }
     return;
   }
   const id = document.getElementById('entry-id').value;
@@ -73,10 +79,16 @@ async function submitEntry() {
   };
   const url = id ? '/api/v1/entries/' + id : '/api/v1/entries';
   const method = id ? 'PATCH' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const json = await res.json();
-  if (json.ok) { window.location.reload(); }
-  else { status.textContent = json.error || 'Could not save entry.'; submitButton.disabled = false; submitButton.textContent = id ? 'Update' : 'Save'; }
+  try {
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const json = await res.json();
+    if (json.ok) { window.location.reload(); }
+    else { status.textContent = json.error || 'Could not save entry.'; submitButton.disabled = false; submitButton.textContent = id ? 'Update' : 'Save'; }
+  } catch {
+    status.textContent = 'Network error. Please try again.';
+    submitButton.disabled = false;
+    submitButton.textContent = id ? 'Update' : 'Save';
+  }
 }
 
 async function deleteEntry() {
@@ -86,10 +98,16 @@ async function deleteEntry() {
   const button = document.getElementById('delete-btn');
   button.disabled = true;
   button.textContent = 'Deleting…';
-  const res = await fetch('/api/v1/entries/' + id, { method: 'DELETE' });
-  const json = await res.json();
-  if (json.ok) { window.location.reload(); }
-  else { document.getElementById('entry-status').textContent = json.error || 'Could not delete entry.'; button.disabled = false; button.textContent = 'Delete entry'; }
+  try {
+    const res = await fetch('/api/v1/entries/' + id, { method: 'DELETE' });
+    const json = await res.json();
+    if (json.ok) { window.location.reload(); }
+    else { document.getElementById('entry-status').textContent = json.error || 'Could not delete entry.'; button.disabled = false; button.textContent = 'Delete entry'; }
+  } catch {
+    document.getElementById('entry-status').textContent = 'Network error. Please try again.';
+    button.disabled = false;
+    button.textContent = 'Delete entry';
+  }
 }
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
