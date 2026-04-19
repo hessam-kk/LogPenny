@@ -59,7 +59,7 @@ app.get('/entries', async (c) => {
   const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
   const allItems = await d.select().from(schema.items).where(isNull(schema.items.archivedAt)).all();
   const items = allItems.filter((i: any) => i.accountId === activeAccount.id);
-  const allEntries = await d.select().from(schema.entries).all();
+  const allEntries = await d.select().from(schema.entries).where(isNull(schema.entries.deletedAt)).all();
   const entries = allEntries
     .filter((r: any) => r.accountId === activeAccount.id && r.date >= from && r.date <= to && (!itemId || r.itemId === itemId))
     .sort((a: any, b: any) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
@@ -76,7 +76,7 @@ app.get('/items', async (c) => {
   const totalsRows = await ((c.env as any).DB as D1Database).prepare(
     `SELECT item_id, SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END) AS income,
        SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END) AS expense, COUNT(*) AS entry_count
-       FROM entries WHERE item_id IS NOT NULL AND account_id = ? GROUP BY item_id`,
+       FROM entries WHERE item_id IS NOT NULL AND account_id = ? AND deleted_at IS NULL GROUP BY item_id`,
   ).bind(activeAccount.id).all<{ item_id: number; income: number; expense: number; entry_count: number }>();
   const totalsMap = new Map(
     (totalsRows.results ?? []).map((r: any) => [r.item_id, { income: r.income ?? 0, expense: r.expense ?? 0, entryCount: r.entry_count ?? 0 }]),
