@@ -99,7 +99,7 @@ async function deleteEntry() {
   button.disabled = true;
   button.textContent = 'Deleting…';
   try {
-    const res = await fetch('/api/v1/entries/' + id, { method: 'DELETE' });
+    const res = await fetch('/api/v1/entries/' + id + '?account_id=' + ACCOUNT_ID, { method: 'DELETE' });
     const json = await res.json();
     if (json.ok) { window.location.reload(); }
     else { document.getElementById('entry-status').textContent = json.error || 'Could not delete entry.'; button.disabled = false; button.textContent = 'Delete entry'; }
