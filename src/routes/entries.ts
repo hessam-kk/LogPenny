@@ -123,11 +123,16 @@ app.post('/quick', async (c) => {
   const now = new Date();  const year = body.year ? Number(body.year) : now.getFullYear();
   const month = body.month ? Number(body.month) : now.getMonth() + 1; // 1-12
   if (!Number.isInteger(year) || year < 1 || !Number.isInteger(month) || month < 1 || month > 12)
-    return fail(c, 'invalid year/month', 422);
-  const daysInMonth = new Date(year, month, 0).getDate();
-
+    return fail(c, 'invalid year/month', 422);  const daysInMonth = new Date(year, month, 0).getDate();
+  const itemId = body.itemId == null || body.itemId === '' ? null : positiveInt(body.itemId);
+  const categoryId = body.categoryId == null || body.categoryId === '' ? null : positiveInt(body.categoryId);
+  if (body.itemId != null && body.itemId !== '' && !itemId) return fail(c, 'invalid itemId', 422);
+  if (body.categoryId != null && body.categoryId !== '' && !categoryId) return fail(c, 'invalid categoryId', 422);
+  if (itemId && !(await itemBelongsToAccount(db, itemId, accountId))) return fail(c, 'item not found for account', 422);
+  if (categoryId && !(await categoryBelongsToAccount(db, categoryId, accountId))) return fail(c, 'category not found for account', 422);
 
   const lines = String(body.text).split(/\r?\n/);
+
   const created: (typeof schema.entries.$inferSelect)[] = [];
   const errors: string[] = [];
 
@@ -153,7 +158,8 @@ app.post('/quick', async (c) => {
         currency,
         title: parsed.title,
         date: dateStr,
-        itemId: body.itemId == null || body.itemId === '' ? null : positiveInt(body.itemId),
+        itemId,
+        categoryId,
       })
       .returning();
     if (entry) created.push(entry);
