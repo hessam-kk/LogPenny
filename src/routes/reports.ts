@@ -4,6 +4,7 @@ import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
 import { fetchMonthly, fetchBreakdown, fetchTrends } from '../lib/reports-data';
+import { getDb, isoDate, isoMonth, positiveInt } from '../lib/validation';
 
 const app = new Hono();
 
@@ -17,8 +18,10 @@ app.get('/monthly', async (c) => {
   if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12)
     return fail(c, 'invalid year/month', 422);
 
-  const db = createDb((c.env as any).DB as D1Database);
-  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, Number(accountId))).all();
+  const accountNumber = positiveInt(accountId);
+  if (!accountNumber) return fail(c, 'invalid account_id', 422);
+  const db = getDb(c);
+  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
 
   const monthStr = String(month).padStart(2, '0');
@@ -42,11 +45,16 @@ app.get('/breakdown', async (c) => {
   const accountId = c.req.query('account_id');
   const from = c.req.query('from');
   const to = c.req.query('to');
+  if (from && !isoDate(from) && !isoMonth(from)) return fail(c, 'invalid from', 422);
+  if (to && !isoDate(to) && !isoMonth(to)) return fail(c, 'invalid to', 422);
+  if (from && to && from > to) return fail(c, 'from must not be after to', 422);
   const groupBy = c.req.query('group_by') === 'category' ? 'category' : 'item';
   if (!accountId) return fail(c, 'account_id is required', 400);
 
-  const db = createDb((c.env as any).DB as D1Database);
-  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, Number(accountId))).all();
+  const accountNumber = positiveInt(accountId);
+  if (!accountNumber) return fail(c, 'invalid account_id', 422);
+  const db = getDb(c);
+  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
 
   if (groupBy === 'item') {
@@ -118,16 +126,21 @@ app.get('/trends', async (c) => {
   const accountId = c.req.query('account_id');
   const from = c.req.query('from');
   const to = c.req.query('to');
+  if (from && !isoDate(from) && !isoMonth(from)) return fail(c, 'invalid from', 422);
+  if (to && !isoDate(to) && !isoMonth(to)) return fail(c, 'invalid to', 422);
+  if (from && to && from > to) return fail(c, 'from must not be after to', 422);
   if (!accountId) return fail(c, 'account_id is required', 400);
-  const db = createDb((c.env as any).DB as D1Database);
-  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, Number(accountId))).all();
+  const accountNumber = positiveInt(accountId);
+  if (!accountNumber) return fail(c, 'invalid account_id', 422);
+  const db = getDb(c);
+  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
   const now = new Date();
   const startMonth = from ?? `${now.getFullYear()}-01`;
   const endMonth = to ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const trends = await fetchTrends(
     (c.env as any).DB as D1Database,
-    Number(accountId),
+    accountNumber,
     Number(startMonth.slice(0, 4)),
     startMonth,
     endMonth,
@@ -142,8 +155,10 @@ app.get('/trends', async (c) => {
 app.get('/balance', async (c) => {
   const accountId = c.req.query('account_id');
   if (!accountId) return fail(c, 'account_id is required', 400);
-  const db = createDb((c.env as any).DB as D1Database);
-  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, Number(accountId))).all();
+  const accountNumber = positiveInt(accountId);
+  if (!accountNumber) return fail(c, 'invalid account_id', 422);
+  const db = getDb(c);
+  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
   const row = await ((c.env as any).DB as D1Database).prepare(
     `SELECT COALESCE(SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END), 0)
