@@ -3,12 +3,13 @@ import { eq, isNull } from 'drizzle-orm';
 import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
+import { getDb, positiveInt } from '../lib/validation';
 
 const app = new Hono();
 
 // List active accounts
 app.get('/', async (c) => {
-  const db = createDb((c.env as any).DB as D1Database);
+  const db = getDb(c);
   const rows = await db
     .select()
     .from(schema.accounts)
@@ -21,7 +22,7 @@ app.get('/', async (c) => {
 app.post('/', async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body || !body.name) return fail(c, 'name is required', 422);
-  const db = createDb((c.env as any).DB as D1Database);
+  const db = getDb(c);
   const [created] = await db
     .insert(schema.accounts)
     .values({
@@ -35,11 +36,11 @@ app.post('/', async (c) => {
 
 // Update
 app.patch('/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  if (!Number.isFinite(id)) return fail(c, 'invalid id', 400);
+  const id = positiveInt(c.req.param('id'));
+  if (!id) return fail(c, 'invalid id', 422);
   const body = await c.req.json().catch(() => null);
   if (!body) return fail(c, 'invalid body', 422);
-  const db = createDb((c.env as any).DB as D1Database);
+  const db = getDb(c);
   const [updated] = await db
     .update(schema.accounts)
     .set({
