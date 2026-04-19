@@ -29,7 +29,7 @@ app.get('/monthly', async (c) => {
   const balanceRow = await ((c.env as any).DB as D1Database).prepare(
     `SELECT COALESCE(SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END), 0)
        - COALESCE(SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END), 0) AS net
-       FROM entries WHERE account_id = ? AND date <= ?`,
+       FROM entries WHERE account_id = ? AND deleted_at IS NULL AND date <= ?`,
   ).bind(accountId, to).first<{ net: number }>();
 
   const { income, expense, daily } = await fetchMonthly((c.env as any).DB as D1Database, Number(accountId), year, month);
@@ -66,7 +66,7 @@ app.get('/breakdown', async (c) => {
        SUM(CASE WHEN e.direction = 'in' THEN e.amount ELSE 0 END) AS income,
        SUM(CASE WHEN e.direction = 'out' THEN e.amount ELSE 0 END) AS expense,
        COUNT(*) AS entry_count
-       FROM entries e ${join} WHERE e.account_id = ?`
+       FROM entries e ${join} WHERE e.account_id = ? AND e.deleted_at IS NULL`
         + (from ? ' AND e.date >= ?' : '')
         + (to ? ' AND e.date <= ?' : '')
         + ' GROUP BY ' + col + ' ORDER BY (income + expense) DESC',
@@ -86,7 +86,7 @@ app.get('/breakdown', async (c) => {
        SUM(CASE WHEN e.direction = 'in' THEN e.amount ELSE 0 END) AS income,
        SUM(CASE WHEN e.direction = 'out' THEN e.amount ELSE 0 END) AS expense,
        COUNT(*) AS entry_count
-       FROM entries e ${join} WHERE e.account_id = ?`
+       FROM entries e ${join} WHERE e.account_id = ? AND e.deleted_at IS NULL`
         + (from ? ' AND e.date >= ?' : '')
         + (to ? ' AND e.date <= ?' : '')
         + ' GROUP BY ' + col + ' ORDER BY (income + expense) DESC',
@@ -163,7 +163,7 @@ app.get('/balance', async (c) => {
   const row = await ((c.env as any).DB as D1Database).prepare(
     `SELECT COALESCE(SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END), 0)
        - COALESCE(SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END), 0) AS net,
-       COUNT(*) AS count FROM entries WHERE account_id = ?`,
+       COUNT(*) AS count FROM entries WHERE account_id = ? AND deleted_at IS NULL`,
   ).bind(accountId).first<{ net: number; count: number }>();
   return ok(c, {
     account: { id: acct.id, name: acct.name, currency: acct.defaultCurrency },
