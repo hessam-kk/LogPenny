@@ -89,14 +89,16 @@ function parseAmountToken(
     const terms = t.split('+').map((x) => x.trim());
     let sum = 0;
     for (const term of terms) {
-      const n = Number(term.replace(/[^\d.-]/g, ''));
+      if (!/^\d+(?:\.\d+)?$/.test(term)) return null;
+      const n = Number(term);
       if (!Number.isFinite(n)) return null;
       sum += n;
     }
     return { value: Math.round(sum), direction };
   }
 
-  const n = Number(t.replace(/[^\d.-]/g, ''));
+  if (!/^\d+(?:\.\d+)?$/.test(t)) return null;
+  const n = Number(t);
   if (!Number.isFinite(n)) return null;
   return { value: Math.round(n), direction };
 }
