@@ -16,7 +16,7 @@ export async function fetchMonthly(
     `SELECT date,
        SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END) AS income,
        SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END) AS expense
-       FROM entries WHERE account_id = ? AND date >= ? AND date <= ?
+       FROM entries WHERE account_id = ? AND deleted_at IS NULL AND date >= ? AND date <= ?
        GROUP BY date ORDER BY date`,
   ).bind(accountId, from, to).all<{ date: string; income: number; expense: number }>();
 
@@ -24,7 +24,7 @@ export async function fetchMonthly(
     `SELECT
        COALESCE(SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END), 0) AS income,
        COALESCE(SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END), 0) AS expense
-       FROM entries WHERE account_id = ? AND date >= ? AND date <= ?`,
+       FROM entries WHERE account_id = ? AND deleted_at IS NULL AND date >= ? AND date <= ?`,
   ).bind(accountId, from, to).first<{ income: number; expense: number }>();
 
   const dailyMap = new Map(
@@ -69,7 +69,7 @@ export async function fetchTrends(
     `SELECT substr(date, 1, 7) AS month,
        SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END) AS income,
        SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END) AS expense
-       FROM entries WHERE account_id = ? AND date >= ? AND date <= ?
+       FROM entries WHERE account_id = ? AND deleted_at IS NULL AND date >= ? AND date <= ?
        GROUP BY substr(date, 1, 7) ORDER BY month`,
   ).bind(accountId, from, to).all<TrendPoint>();
   return (result.results ?? []).map((r) => ({
