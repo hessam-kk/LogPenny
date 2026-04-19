@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, gte, lte, desc, or, like } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, or, like, isNull } from 'drizzle-orm';
 import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
@@ -26,7 +26,7 @@ app.get('/', async (c) => {
   if (from && !isoDate(from)) return fail(c, 'invalid from date', 422);
   if (to && !isoDate(to)) return fail(c, 'invalid to date', 422);
   if (from && to && from > to) return fail(c, 'from must not be after to', 422);
-  const conditions = [eq(schema.entries.accountId, accountNumber)];
+  const conditions = [eq(schema.entries.accountId, accountNumber), isNull(schema.entries.deletedAt)];
   if (from) conditions.push(gte(schema.entries.date, from));
   if (to) conditions.push(lte(schema.entries.date, to));
   if (itemId) {
@@ -222,9 +222,28 @@ app.delete('/:id', async (c) => {
   const db = getDb(c);
   const accountId = positiveInt(c.req.query('account_id'));
   if (!accountId) return fail(c, 'account_id is required', 400);
-  const [deleted] = await db.delete(schema.entries).where(and(eq(schema.entries.id, id), eq(schema.entries.accountId, accountId))).returning({ id: schema.entries.id });
+  const [deleted] = await db
+    .update(schema.entries)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(schema.entries.id, id), eq(schema.entries.accountId, accountId), isNull(schema.entries.deletedAt)))
+    .returning({ id: schema.entries.id, deletedAt: schema.entries.deletedAt });
   if (!deleted) return fail(c, 'entry not found', 404);
   return ok(c, deleted);
+});
+
+app.post('/:id/restore', async (c) => {
+  const id = positiveInt(c.req.param('id'));
+  if (!id) return fail(c, 'invalid id', 422);
+  const accountId = positiveInt(c.req.query('account_id'));
+  if (!accountId) return fail(c, 'account_id is required', 400);
+  const db = getDb(c);
+  const [restored] = await db
+    .update(schema.entries)
+    .set({ deletedAt: null, updatedAt: new Date() })
+    .where(and(eq(schema.entries.id, id), eq(schema.entries.accountId, accountId)))
+    .returning({ id: schema.entries.id, deletedAt: schema.entries.deletedAt });
+  if (!restored) return fail(c, 'entry not found', 404);
+  return ok(c, restored);
 });
 
 export default app;
