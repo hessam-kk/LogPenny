@@ -34,7 +34,7 @@ app.get('/', async (c) => {
        SUM(CASE WHEN direction = 'in' THEN amount ELSE 0 END) AS income,
        SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END) AS expense,
        COUNT(*) AS entry_count
-       FROM entries WHERE item_id IS NOT NULL AND account_id = ?
+       FROM entries WHERE item_id IS NOT NULL AND account_id = ? AND deleted_at IS NULL
        GROUP BY item_id`,
   )
     .bind(accountNumber)
@@ -73,7 +73,7 @@ app.get('/:id', async (c) => {
   const childEntries = await db
     .select()
     .from(schema.entries)
-    .where(and(eq(schema.entries.itemId, id), eq(schema.entries.accountId, accountId)))
+    .where(and(eq(schema.entries.itemId, id), eq(schema.entries.accountId, accountId), isNull(schema.entries.deletedAt)))
     .orderBy(schema.entries.date);
 
   return ok(c, { item, entries: childEntries });
