@@ -49,13 +49,10 @@ export const ReportsView: FC<ReportsViewProps> = ({
   const calQ = cal === 'j' ? 'cal=j&' : '';
   const acctQ = `account_id=${account.id}&${calQ}`;
 
-  // SVG dimensions for trend line chart
-  const tw = 600, th = 180, pad = 30;
+  const tw = 600, th = 170, pad = 32;
   const monthCount = trends.length || 1;
   const xStep = (tw - pad * 2) / Math.max(monthCount - 1, 1);
   const yScale = (v: number) => th - pad - (v / maxTrend) * (th - pad * 2);
-  const linePath = (key: 'income' | 'expense') =>
-    trends.map((t, i) => `${i === 0 ? 'M' : 'L'} ${pad + i * xStep} ${yScale(t[key])}`).join(' ');
 
   return (
     <>
@@ -64,9 +61,9 @@ export const ReportsView: FC<ReportsViewProps> = ({
 
       <div class="app-shell">
         <div class="month-nav">
-          <a class="month-nav-btn" href={`/reports?${acctQ}year=${previous.gy}&month=${previous.gm}`}>‹ {monthLabel(previous.gy, previous.gm, cal)}</a>
+          <a class="month-nav-btn" href={`/reports?${acctQ}year=${previous.gy}&month=${previous.gm}`}>&#8249; {monthLabel(previous.gy, previous.gm, cal)}</a>
           <div class="month-nav-title">{formatMonthYear(year, month, cal)}</div>
-          <a class="month-nav-btn" href={`/reports?${acctQ}year=${next.gy}&month=${next.gm}`}>{monthLabel(next.gy, next.gm, cal)} ›</a>
+          <a class="month-nav-btn" href={`/reports?${acctQ}year=${next.gy}&month=${next.gm}`}>{monthLabel(next.gy, next.gm, cal)} &#8250;</a>
         </div>
 
         <div class="stats">
@@ -80,24 +77,24 @@ export const ReportsView: FC<ReportsViewProps> = ({
           </div>
           <div class="stat">
             <div class="stat-label">Net</div>
-            <div class="stat-value" style={net >= 0 ? 'color: var(--income)' : 'color: var(--expense)'}>
-              {net >= 0 ? '+' : '−'}{formatAmount(Math.abs(net), currency)}
+            <div class="stat-value" style={net >= 0 ? 'color:var(--income)' : 'color:var(--expense)'}>
+              {net >= 0 ? '+' : '\u2212'}{formatAmount(Math.abs(net), currency)}
             </div>
           </div>
         </div>
 
         {/* Daily bar chart */}
         <div class="card">
-          <div class="card-title">Daily activity — {formatMonthYear(year, month, cal)}</div>
-          <div class="chart-wrap">
+          <div class="card-title">Daily activity &mdash; {formatMonthYear(year, month, cal)}</div>
+          <div class="chart-wrap" role="img" aria-label={`Bar chart of daily income and expenses for ${formatMonthYear(year, month, cal)}`}>
             <div class="chart-row">
               {daily.map((d) => (
-                <div class="chart-bar" title={`Day ${d.day}: +${d.income} / −${d.expense}`}>
+                <div class="chart-bar" title={`Day ${d.day}: +${d.income} / \u2212${d.expense}`}>
                   {d.expense > 0 && (
-                    <div class="chart-bar-out" style={`height: ${(d.expense / maxDaily) * 100}%;`}></div>
+                    <div class="chart-bar-out" style={`height:${(d.expense / maxDaily) * 100}%`}></div>
                   )}
                   {d.income > 0 && (
-                    <div class="chart-bar-in" style={`height: ${(d.income / maxDaily) * 100}%;`}></div>
+                    <div class="chart-bar-in" style={`height:${(d.income / maxDaily) * 100}%`}></div>
                   )}
                 </div>
               ))}
@@ -106,17 +103,17 @@ export const ReportsView: FC<ReportsViewProps> = ({
               <span>1</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30</span>
             </div>
           </div>
-          <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--text-dim);">
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--income);border-radius:2px;margin-right:4px;"></span>Income</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--expense);border-radius:2px;margin-right:4px;"></span>Expense</span>
+          <div class="legend-inline">
+            <span><span class="legend-dot" style="background:var(--income)"></span>Income</span>
+            <span><span class="legend-dot" style="background:var(--expense)"></span>Expense</span>
           </div>
         </div>
 
         {/* Breakdown */}
-        <div class="card" style="margin-top:16px;">
+        <div class="card" style="margin-top:16px">
           <div class="card-title">Breakdown by item</div>
           {breakdown.length === 0 ? (
-            <div class="empty" style="padding:24px;">No data for this period.</div>
+            <div style="padding:24px;text-align:center;color:var(--text-muted)">No data for this period.</div>
           ) : (
             breakdown.map((r) => {
               const share = ((r.income + r.expense) / totalBreakdown) * 100;
@@ -124,49 +121,54 @@ export const ReportsView: FC<ReportsViewProps> = ({
                 <div class="breakdown-row">
                   <div class="breakdown-label"><span class={hasPersian(r.label) ? 'persian' : ''}>{r.label}</span></div>
                   <div class="breakdown-bar">
-                    <div class="breakdown-bar-fill" style={`width: ${share}%;`}></div>
+                    <div class="breakdown-bar-fill" style={`width:${share}%`}></div>
                   </div>
-                  <div class="breakdown-amt">
-                    {formatAmount(r.income + r.expense, currency)}
-                  </div>
+                  <div class="breakdown-amt">{formatAmount(r.income + r.expense, currency)}</div>
                 </div>
               );
             })
           )}
         </div>
 
-        {/* Trends line chart (SVG) */}
-        <div class="card" style="margin-top:16px;">
-          <div class="card-title">Trends — {year}</div>
+        {/* Trends line chart */}
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">Trends &mdash; {year}</div>
           {trends.length === 0 ? (
-            <div class="empty" style="padding:24px;">No data this year yet.</div>
+            <div style="padding:24px;text-align:center;color:var(--text-muted)">No data this year yet.</div>
           ) : (
             <>
               <div class="chart-wrap">
-                <svg viewBox={`0 0 ${tw} ${th}`} style="width:100%; height:auto; display:block;" preserveAspectRatio="none">
-                  {/* grid lines */}
+                <svg viewBox={`0 0 ${tw} ${th}`} style="width:100%;height:auto;display:block" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Line chart of monthly income and expense trends">
                   <line x1={pad} y1={th - pad} x2={tw - pad} y2={th - pad} stroke="var(--border)" stroke-width="1" />
                   <line x1={pad} y1={pad} x2={pad} y2={th - pad} stroke="var(--border)" stroke-width="1" />
-                  {/* income line */}
-                  <path d={linePath('income')} fill="none" stroke="var(--income)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
-                  {/* expense line */}
-                  <path d={linePath('expense')} fill="none" stroke="var(--expense)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
-                  {/* points */}
+                  {/* Income line */}
+                  <polyline
+                    points={trends.map((t, i) => `${pad + i * xStep},${yScale(t.income)}`).join(' ')}
+                    fill="none" stroke="var(--income)" stroke-width="2.5"
+                    stroke-linejoin="round" stroke-linecap="round"
+                  />
+                  {/* Expense line */}
+                  <polyline
+                    points={trends.map((t, i) => `${pad + i * xStep},${yScale(t.expense)}`).join(' ')}
+                    fill="none" stroke="var(--expense)" stroke-width="2.5"
+                    stroke-linejoin="round" stroke-linecap="round"
+                  />
+                  {/* Data points */}
                   {trends.map((t, i) => (
                     <g key={t.month}>
-                      <circle cx={pad + i * xStep} cy={yScale(t.income)} r="3" fill="var(--income)" />
-                      <circle cx={pad + i * xStep} cy={yScale(t.expense)} r="3" fill="var(--expense)" />
+                      <circle cx={pad + i * xStep} cy={yScale(t.income)} r="3.5" fill="var(--income)" />
+                      <circle cx={pad + i * xStep} cy={yScale(t.expense)} r="3.5" fill="var(--expense)" />
                     </g>
                   ))}
-                  {/* x labels */}
+                  {/* X labels */}
                   {trends.map((t, i) => (
-                    <text x={pad + i * xStep} y={th - 10} font-size="9" text-anchor="middle" fill="var(--text-dim)">{t.month.slice(5)}</text>
+                    <text key={`l-${t.month}`} x={pad + i * xStep} y={th - 10} font-size="9" text-anchor="middle" fill="var(--text-muted)">{t.month.slice(5)}</text>
                   ))}
                 </svg>
               </div>
-              <div style="display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--text-dim);">
-                <span><span style="display:inline-block;width:10px;height:10px;background:var(--income);border-radius:2px;margin-right:4px;"></span>Income</span>
-                <span><span style="display:inline-block;width:10px;height:10px;background:var(--expense);border-radius:2px;margin-right:4px;"></span>Expense</span>
+              <div class="legend-inline">
+                <span><span class="legend-dot" style="background:var(--income)"></span>Income</span>
+                <span><span class="legend-dot" style="background:var(--expense)"></span>Expense</span>
               </div>
             </>
           )}
