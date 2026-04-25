@@ -47,8 +47,8 @@ export async function fetchBreakdown(
        COALESCE(i.title, '(standalone)') AS label,
        SUM(CASE WHEN e.direction = 'in' THEN e.amount ELSE 0 END) AS income,
        SUM(CASE WHEN e.direction = 'out' THEN e.amount ELSE 0 END) AS expense
-       FROM entries e LEFT JOIN items i ON i.id = e.item_id
-       WHERE e.account_id = ? AND e.date >= ? AND e.date <= ?
+       FROM entries e LEFT JOIN items i ON i.id = e.item_id AND i.archived_at IS NULL
+       WHERE e.account_id = ? AND e.deleted_at IS NULL AND e.date >= ? AND e.date <= ?
        GROUP BY e.item_id ORDER BY (income + expense) DESC`,
   ).bind(accountId, from, to).all<BreakdownRow>();
   return (result.results ?? []).map((r) => ({
