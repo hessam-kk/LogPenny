@@ -44,8 +44,8 @@ export const Layout: FC<PropsWithChildren> = ({ children }) => {
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
-        <meta name="theme-color" content="#f1f5f9" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#1C1815" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#F9F5EF" media="(prefers-color-scheme: light)" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="alternate icon" href="/favicon.svg" />
         <title>LogPenny — Money Tracker</title>
@@ -53,13 +53,14 @@ export const Layout: FC<PropsWithChildren> = ({ children }) => {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
         />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css"
         />
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
         <style dangerouslySetInnerHTML={{ __html: ALL_STYLES }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         <script dangerouslySetInnerHTML={{ __html: CAL_INIT }} />
