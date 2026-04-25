@@ -59,7 +59,7 @@ app.get('/breakdown', async (c) => {
 
   if (groupBy === 'item') {
     const col = 'e.item_id';
-    const join = 'LEFT JOIN items i ON i.id = e.item_id';
+    const join = 'LEFT JOIN items i ON i.id = e.item_id AND i.archived_at IS NULL';
     const label = "COALESCE(i.title, '(standalone)')";
     let stmt = ((c.env as any).DB as D1Database).prepare(
       `SELECT ${col} AS group_id, ${label} AS label,
@@ -71,10 +71,10 @@ app.get('/breakdown', async (c) => {
         + (to ? ' AND e.date <= ?' : '')
         + ' GROUP BY ' + col + ' ORDER BY (income + expense) DESC',
     );
-    const binds: (string | number)[] = [accountId];
+    const binds: (string | number)[] = [accountNumber];
     if (from) binds.push(from);
     if (to) binds.push(to);
-    const result = await (from || to ? stmt.bind(...binds) : stmt.bind(accountId))
+    const result = await (from || to ? stmt.bind(...binds) : stmt.bind(accountNumber))
       .all<{ group_id: number | null; label: string; income: number; expense: number; entry_count: number }>();
     return ok(c, buildBreakdown(acct, groupBy, from ?? null, to ?? null, result.results ?? []));
   } else {
@@ -91,10 +91,10 @@ app.get('/breakdown', async (c) => {
         + (to ? ' AND e.date <= ?' : '')
         + ' GROUP BY ' + col + ' ORDER BY (income + expense) DESC',
     );
-    const binds: (string | number)[] = [accountId];
+    const binds: (string | number)[] = [accountNumber];
     if (from) binds.push(from);
     if (to) binds.push(to);
-    const result = await (from || to ? stmt.bind(...binds) : stmt.bind(accountId))
+    const result = await (from || to ? stmt.bind(...binds) : stmt.bind(accountNumber))
       .all<{ group_id: number | null; label: string; income: number; expense: number; entry_count: number }>();
     return ok(c, buildBreakdown(acct, groupBy, from ?? null, to ?? null, result.results ?? []));
   }
