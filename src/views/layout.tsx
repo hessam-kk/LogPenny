@@ -2,49 +2,39 @@ import type { FC, PropsWithChildren } from 'hono/jsx';
 import { ALL_STYLES } from './styles';
 
 const THEME_INIT = `
-(function() {
-  try {
-    var t = localStorage.getItem('theme');
-    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', t);
-  } catch(e) {}
+(function(){
+  try{
+    var t=localStorage.getItem('theme');
+    if(!t) t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+    document.documentElement.setAttribute('data-theme',t);
+  }catch(e){}
 })();
 `;
 
 const CAL_INIT = `
-(function() {
-  try {
-    var cal = localStorage.getItem('cal');
-    if (cal === 'j') {
-      var url = new URL(window.location.href);
-      if (!url.searchParams.get('cal')) {
-        url.searchParams.set('cal', 'j');
-        window.location.replace(url.toString());
-      }
-    }
-  } catch(e) {}
+(function(){
+  try{
+    var cal=localStorage.getItem('cal');
+    if(cal==='j'){var u=new URL(window.location.href);if(!u.searchParams.get('cal')){u.searchParams.set('cal','j');window.location.replace(u.toString())}}
+  }catch(e){}
 })();
 `;
 
 const THEME_TOGGLE = `
-window.toggleTheme = function() {
-  var cur = document.documentElement.getAttribute('data-theme');
-  var next = cur === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  try { localStorage.setItem('theme', next); } catch(e) {}
+window.toggleTheme=function(){
+  var c=document.documentElement.getAttribute('data-theme');
+  var n=c==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',n);
+  try{localStorage.setItem('theme',n)}catch(e){}
 };
-
-// Calendar toggle: switches between Gregorian ('g') and Persian/Jalali ('j').
-// Persists the choice in localStorage and reloads with the new query param.
-window.toggleCalendar = function() {
-  var cur = 'g';
-  try { cur = localStorage.getItem('cal') || 'g'; } catch(e) {}
-  var next = cur === 'j' ? 'g' : 'j';
-  try { localStorage.setItem('cal', next); } catch(e) {}
-  // Reload the page with the new cal param, preserving other query params.
-  var url = new URL(window.location.href);
-  url.searchParams.set('cal', next);
-  window.location.href = url.toString();
+window.toggleCalendar=function(){
+  var c='g';
+  try{c=localStorage.getItem('cal')||'g'}catch(e){}
+  var n=c==='j'?'g':'j';
+  try{localStorage.setItem('cal',n)}catch(e){}
+  var u=new URL(window.location.href);
+  u.searchParams.set('cal',n);
+  window.location.href=u.toString();
 };
 `;
 
@@ -54,10 +44,17 @@ export const Layout: FC<PropsWithChildren> = ({ children }) => {
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#6366f1" />
+        <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
+        <meta name="theme-color" content="#f1f5f9" media="(prefers-color-scheme: light)" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="alternate icon" href="/favicon.svg" />
         <title>LogPenny — Money Tracker</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap"
+        />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link
           rel="stylesheet"
