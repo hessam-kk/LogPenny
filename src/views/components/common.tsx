@@ -21,7 +21,7 @@ export const TopBar: FC<TopBarProps> = ({ accounts, activeAccount, showAccountSw
     <header class="topbar">
       <div class="topbar-inner">
         <a href={brandHref} class="brand" translate="no">
-          <span class="brand-dot"></span>
+          <span class="brand-mark">L</span>
           LogPenny
         </a>
         <div class="topbar-spacer"></div>
