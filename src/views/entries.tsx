@@ -122,8 +122,21 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
               <label class="form-label" for="notes">Notes</label>
               <textarea class="form-control" id="notes" name="notes" dir="auto" placeholder="Optional details\u2026"></textarea>
             </div>
-            <div style="margin-top:8px">
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
               <button type="button" class="btn btn-sm" onclick="toggleTtd()">Quick add (TTD)</button>
+              <button type="button" class="btn btn-sm" onclick="toggleImport()">Import Excel</button>
+            </div>
+            <div id="import-section" hidden style="margin-top:10px">
+              <div class="form-group">
+                <label class="form-label" for="import-sheet">Sheet</label>
+                <select class="form-control" id="import-sheet"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="import-file">Excel file (.xlsx)</label>
+                <input class="form-control" type="file" id="import-file" accept=".xlsx" onchange="handleImportFile(event)" />
+              </div>
+              <div id="import-preview" class="ttd-preview" hidden></div>
+              <button type="button" class="btn btn-sm" onclick="doImport()" style="margin-top:8px">Import rows</button>
             </div>
             <div id="ttd-section" hidden style="margin-top:10px">
               <div class="form-group">
