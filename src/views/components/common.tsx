@@ -8,7 +8,7 @@ interface TopBarProps {
   activeAccount: Account | null;
   showAccountSwitch?: boolean;
   cal?: 'g' | 'j';
-  calQuery?: string; // query string prefix to propagate
+  calQuery?: string;
   basePath?: string;
 }
 
@@ -20,7 +20,7 @@ export const TopBar: FC<TopBarProps> = ({ accounts, activeAccount, showAccountSw
   return (
     <header class="topbar">
       <div class="topbar-inner">
-        <a href={brandHref} class="brand">
+        <a href={brandHref} class="brand" translate="no">
           <span class="brand-dot"></span>
           LogPenny
         </a>
@@ -46,8 +46,13 @@ export const TopBar: FC<TopBarProps> = ({ accounts, activeAccount, showAccountSw
         >
           {calLabel}
         </button>
-        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
-          <span id="theme-icon">◐</span>
+        <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+          <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg class="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
         </button>
       </div>
     </header>
@@ -74,19 +79,20 @@ export const Tabs: FC<TabsProps> = ({ active, accountId, cal }) => {
   );
 };
 
-// Wrap text in a span that uses the Persian font when the content is Persian.
 export const AutoText: FC<PropsWithChildren<{ text: string }>> = ({ text }) => {
   return <span class={hasPersian(text) ? 'persian' : ''}>{text}</span>;
 };
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  IRR: 'T', USD: '$', EUR: '\u20AC', GBP: '\u00A3',
+};
+
 export const formatAmount = (amount: number, currency: string): string => {
-  const meta = currency === 'IRR' ? { symbol: 'T', minorDigits: 0 } : { symbol: currency, minorDigits: 0 };
-  const value = amount;
+  const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
   const formatted = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: meta.minorDigits,
-    maximumFractionDigits: meta.minorDigits,
-  }).format(value);
-  return `${formatted} ${meta.symbol}`;
+    maximumFractionDigits: 0,
+  }).format(amount);
+  return `${formatted} ${symbol}`;
 };
 
 export const monthName = (m: number): string =>
