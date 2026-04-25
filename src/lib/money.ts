@@ -1,12 +1,23 @@
 // Money formatting. Amounts are stored as integer minor units.
 // For IRR (Toman) we treat 1 Toman = 1 unit (no subunits).
 
+export const SUPPORTED_CURRENCIES = ['IRR', 'USD', 'EUR', 'GBP'] as const;
+export type CurrencyCode = (typeof SUPPORTED_CURRENCIES)[number];
+
 const CURRENCY_META: Record<string, { symbol: string; locale: string; minorDigits: number }> = {
   IRR: { symbol: 'T', locale: 'fa-IR', minorDigits: 0 }, // Toman
   USD: { symbol: '$', locale: 'en-US', minorDigits: 2 },
   EUR: { symbol: '€', locale: 'en-IE', minorDigits: 2 },
   GBP: { symbol: '£', locale: 'en-GB', minorDigits: 2 },
 };
+
+export function normalizeCurrency(value: unknown): CurrencyCode | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toUpperCase();
+  return (SUPPORTED_CURRENCIES as readonly string[]).includes(normalized)
+    ? normalized as CurrencyCode
+    : null;
+}
 
 export function getMeta(currency: string) {
   return CURRENCY_META[currency] ?? { symbol: currency, locale: 'en-US', minorDigits: 0 };
