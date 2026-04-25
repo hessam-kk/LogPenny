@@ -270,6 +270,12 @@ export const STYLES6 = `
 .persian { font-family: "Vazirmatn", var(--font); }
 .section-title { font-size: 16px; font-weight: 700; margin: 24px 0 12px; }
 .ttd-help { font-size: 12px; color: var(--text-dim); margin-top: 6px; line-height: 1.6; }
+.ttd-preview { margin-top: 10px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.ttd-preview-row { display: grid; grid-template-columns: 80px 1fr auto; gap: 8px; align-items: center; padding: 7px 4px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.ttd-preview-row:last-child { border-bottom: 0; }
+.ttd-preview-row time { color: var(--text-dim); font-size: 11px; }
+.ttd-preview-error { color: var(--expense); }
+@media (max-width: 560px) { .ttd-preview-row { grid-template-columns: 64px 1fr; } .ttd-preview-row time { grid-column: 2; } }
 .ttd-help code { background: var(--surface-2); backdrop-filter: blur(4px); padding: 1px 5px; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 11px; border: 1px solid var(--border); }
 .cal-toggle {
   width: 38px; height: 38px; border-radius: 50%;
