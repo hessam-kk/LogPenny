@@ -40,7 +40,27 @@ function openEditModal(entry) {
 
 function closeModal() { document.getElementById('add-modal').hidden = true; }
 function toggleTtd() { document.getElementById('ttd-section').hidden = !document.getElementById('ttd-section').hidden; }
-function hideTtd() { document.getElementById('ttd-section').hidden = true; }
+function hideTtd() { document.getElementById('ttd-section').hidden = true; clearTtdPreview(); }
+function clearTtdPreview() { const preview = document.getElementById('ttd-preview'); preview.hidden = true; preview.innerHTML = ''; }
+async function previewTtd() {
+  const text = document.getElementById('ttd-text').value.trim();
+  const preview = document.getElementById('ttd-preview');
+  const status = document.getElementById('entry-status');
+  if (!text) { status.textContent = 'Paste at least one line first.'; return; }
+  preview.hidden = false;
+  preview.textContent = 'Parsing…';
+  try {
+    const res = await fetch('/api/v1/entries/quick/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accountId: ACCOUNT_ID, text, year: YEAR, month: MONTH }) });
+    const json = await res.json();
+    if (!json.ok) { preview.textContent = json.error || 'Could not parse lines.'; return; }
+    preview.innerHTML = json.data.lines.map(line => line.error
+      ? '<div class="ttd-preview-row ttd-preview-error"><span>Skipped</span><span dir="auto">' + escapeHtml(line.raw) + '</span></div>'
+      : '<div class="ttd-preview-row"><span class="' + (line.direction === 'in' ? 'income' : 'expense') + '">' + (line.direction === 'in' ? '+' : '−') + line.amount + '</span><span dir="auto">' + escapeHtml(line.title) + '</span><time>' + line.date + '</time></div>').join('');
+    const valid = json.data.lines.filter(line => !line.error).length;
+    status.textContent = valid + ' line' + (valid === 1 ? '' : 's') + ' ready to save.';
+  } catch { preview.textContent = 'Network error. Please try again.'; }
+}
+function escapeHtml(value) { const div = document.createElement('div'); div.textContent = value; return div.innerHTML; }
 
 async function submitEntry() {
   const submitButton = document.getElementById('submit-btn');
@@ -115,6 +135,8 @@ window.openEditModal = openEditModal;
 window.openAddModal = openAddModal;
 window.closeModal = closeModal;
 window.toggleTtd = toggleTtd;
+window.previewTtd = previewTtd;
+window.clearTtdPreview = clearTtdPreview;
 window.submitEntry = submitEntry;
 window.deleteEntry = deleteEntry;
 `;
