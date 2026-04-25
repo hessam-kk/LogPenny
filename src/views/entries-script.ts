@@ -137,6 +137,131 @@ window.closeModal = closeModal;
 window.toggleTtd = toggleTtd;
 window.previewTtd = previewTtd;
 window.clearTtdPreview = clearTtdPreview;
+
+let importData = null;
+function toggleImport() {
+  const sec = document.getElementById('import-section');
+  sec.hidden = !sec.hidden;
+  if (!sec.hidden && typeof XLSX === 'undefined') {
+    document.getElementById('entry-status').textContent = 'Loading Excel library…';
+  }
+}
+function hideImport() { document.getElementById('import-section').hidden = true; }
+
+function handleImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') {
+    document.getElementById('entry-status').textContent = 'Excel library not loaded. Please wait and try again.';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheetSelect = document.getElementById('import-sheet');
+      sheetSelect.innerHTML = wb.SheetNames.map(n => '<option value="' + n + '">' + n + '</option>').join('');
+      parseImportSheet(wb, wb.SheetNames[0]);
+    } catch(ex) {
+      document.getElementById('entry-status').textContent = 'Could not read file: ' + ex.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseImportSheet(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) { document.getElementById('entry-status').textContent = 'Sheet not found.'; return; }
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  if (!data || data.length < 2) { document.getElementById('entry-status').textContent = 'No data rows found.'; return; }
+
+  // Detect Jalali year from sheet name
+  const jalaliYear = /^\d{4}$/.test(sheetName) ? parseInt(sheetName, 10) : YEAR;
+
+  const rows = [];
+  let skipped = 0;
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    if (!row || row.length < 3) { skipped++; continue; }
+    const amount = Number(row[0]);
+    if (!isFinite(amount) || amount === 0) { skipped++; continue; }
+    const title = String(row[1] || '').trim();
+    if (!title) { skipped++; continue; }
+
+    // Parse date: cell might be text like "1 فروردین" or a day number
+    let date = null;
+    const rawDate = row[2];
+    if (rawDate != null && rawDate !== '') {
+      date = guessDate(String(rawDate), jalaliYear, MONTH);
+    }
+    if (!date) {
+      // Try to use current month with day=1 as fallback
+      date = YEAR + '-' + String(MONTH).padStart(2,'0') + '-01';
+    }
+
+    const direction = amount < 0 ? 'in' : 'out';
+    const absAmount = Math.round(Math.abs(amount));
+    rows.push({ amount: absAmount, direction, title, date, notes: row[3] ? String(row[3]).trim() : null });
+  }
+
+  importData = rows;
+  const preview = document.getElementById('import-preview');
+  preview.hidden = rows.length === 0;
+  preview.innerHTML = rows.map(r =>
+    '<div class="ttd-preview-row"><span class="' + (r.direction === 'in' ? 'income' : 'expense') + '">' + (r.direction === 'in' ? '+' : '−') + r.amount + '</span><span dir="auto">' + escapeHtml(r.title) + '</span><time>' + r.date + '</time></div>'
+  ).join('');
+  document.getElementById('entry-status').textContent = rows.length + ' rows ready to import.' + (skipped > 0 ? ' (' + skipped + ' skipped)' : '');
+}
+
+function guessDate(str, jalaliYear, fallbackMonth) {
+  // Simple Persian month parsing (duplicated from server for client preview)
+  const months = { 'فروردین':1,'اردیبهشت':2,'خرداد':3,'تیر':4,'مرداد':5,'شهریور':6,'مهر':7,'آبان':8,'آذر':9,'دی':10,'بهمن':11,'اسفند':12 };
+  const cleaned = str.trim();
+  for (const [name, mNum] of Object.entries(months)) {
+    const match = cleaned.match(new RegExp('^(\\d+)\\s*' + name + '$'));
+    if (match) {
+      const day = parseInt(match[1], 10);
+      // Approximate: map Jalali month to Gregorian month offset
+      // For preview purposes, just use current year + month offset
+      const gMonth = ((mNum - 1 + 2) % 12) + 1; // rough offset
+      return YEAR + '-' + String(gMonth).padStart(2,'0') + '-' + String(Math.min(day, 31)).padStart(2,'0');
+    }
+  }
+  // Plain day number
+  const dayNum = parseInt(cleaned.replace(/[^0-9]/g, ''), 10);
+  if (dayNum >= 1 && dayNum <= 31) {
+    return YEAR + '-' + String(fallbackMonth).padStart(2,'0') + '-' + String(Math.min(dayNum, 31)).padStart(2,'0');
+  }
+  // ISO date
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return cleaned;
+  return null;
+}
+
+async function doImport() {
+  if (!importData || importData.length === 0) {
+    document.getElementById('entry-status').textContent = 'No rows to import.';
+    return;
+  }
+  if (!confirm('Import ' + importData.length + ' entries?')) return;
+  const status = document.getElementById('entry-status');
+  const itemId = document.getElementById('itemId').value || '';
+  try {
+    const res = await fetch('/api/v1/entries/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId: ACCOUNT_ID, rows: importData, itemId: itemId || undefined }),
+    });
+    const json = await res.json();
+    if (json.ok) { window.location.reload(); }
+    else { status.textContent = json.error || 'Import failed.'; }
+  } catch {
+    status.textContent = 'Network error. Please try again.';
+  }
+}
+
+window.toggleImport = toggleImport;
+window.handleImportFile = handleImportFile;
+window.doImport = doImport;
 window.submitEntry = submitEntry;
 window.deleteEntry = deleteEntry;
 `;
