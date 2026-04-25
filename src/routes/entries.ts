@@ -274,4 +274,63 @@ app.post('/:id/restore', async (c) => {
   return ok(c, restored);
 });
 
+// Import: bulk create from pre-parsed rows (sent by client after preview)
+app.post('/import', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  if (!body || !body.accountId || !body.rows || !Array.isArray(body.rows))
+    return fail(c, 'accountId and rows are required', 422);
+  const accountId = positiveInt(body.accountId);
+  if (!accountId) return fail(c, 'invalid accountId', 422);
+  const db = getDb(c);
+  if (!(await accountExists(db, accountId))) return fail(c, 'account not found', 404);
+  const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountId)).all();
+  if (!acct) return fail(c, 'account not found', 404);
+  const currency = acct.defaultCurrency;
+
+  const itemId = body.itemId == null || body.itemId === '' ? null : positiveInt(body.itemId);
+  if (body.itemId != null && body.itemId !== '' && !itemId) return fail(c, 'invalid itemId', 422);
+  if (itemId && !(await itemBelongsToAccount(db, itemId, accountId))) return fail(c, 'item not found for account', 422);
+
+  const created: (typeof schema.entries.$inferSelect)[] = [];
+  const errors: string[] = [];
+
+  for (let i = 0; i < body.rows.length; i++) {
+    const r = body.rows[i];
+    if (!r || !r.amount || !r.title || !r.date) {
+      errors.push(`Row ${i + 1}: missing required fields`);
+      continue;
+    }
+    const amount = Number(r.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      errors.push(`Row ${i + 1}: invalid amount`);
+      continue;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(r.date))) {
+      errors.push(`Row ${i + 1}: invalid date`);
+      continue;
+    }
+    const direction = r.direction === 'in' ? 'in' : 'out';
+    try {
+      const [entry] = await db
+        .insert(schema.entries)
+        .values({
+          accountId,
+          itemId,
+          amount: Math.round(amount),
+          direction,
+          currency,
+          title: String(r.title).trim(),
+          date: String(r.date),
+          notes: r.notes ? String(r.notes).trim() : null,
+        })
+        .returning();
+      if (entry) created.push(entry);
+    } catch {
+      errors.push(`Row ${i + 1}: database error`);
+    }
+  }
+
+  return ok(c, { created, errors, total: body.rows.length }, 201);
+});
+
 export default app;
