@@ -3,7 +3,7 @@ import { eq, and, gte, lte, desc, or, like, isNull } from 'drizzle-orm';
 import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
-import { parseAmount } from '../lib/money';
+import { normalizeCurrency, parseAmount } from '../lib/money';
 import { parseTtdLine } from '../lib/ttd';
 import { accountExists, categoryBelongsToAccount, getDb, isoDate, positiveInt, itemBelongsToAccount } from '../lib/validation';
 
@@ -70,15 +70,15 @@ app.post('/', async (c) => {
   if (categoryNumber && !(await categoryBelongsToAccount(db, categoryNumber, accountNumber))) return fail(c, 'category not found for account', 422);
 
   // Resolve currency from account if not provided
-  let currency = body.currency ? String(body.currency) : undefined;
-  if (!currency) {
-    const [acct] = await db
-      .select()
-      .from(schema.accounts)
-      .where(eq(schema.accounts.id, Number(body.accountId)))
-      .all();
-    currency = acct?.defaultCurrency ?? 'IRR';
-  }
+  const [acct] = await db
+    .select()
+    .from(schema.accounts)
+    .where(eq(schema.accounts.id, accountNumber))
+    .all();
+  if (!acct) return fail(c, 'account not found', 404);
+  let currency = body.currency ? normalizeCurrency(body.currency) ?? undefined : acct.defaultCurrency;
+  if (!currency) return fail(c, 'unsupported currency', 422);
+  if (currency !== acct.defaultCurrency) return fail(c, `currency must match account default (${acct.defaultCurrency})`, 422);
 
   const parsed = parseAmount(String(body.amount), currency);
   if (parsed === null) return fail(c, 'invalid amount', 422);
@@ -202,7 +202,7 @@ app.patch('/:id', async (c) => {
   const db = getDb(c);
   const existing = await db.select().from(schema.entries).where(eq(schema.entries.id, id)).all();
   const entry = existing[0];
-  if (!entry) return fail(c, 'entry not found', 404);
+  if (!entry || entry.deletedAt) return fail(c, 'entry not found', 404);
   const accountNumber = positiveInt(body.accountId ?? entry.accountId);
   if (!accountNumber || accountNumber !== entry.accountId) return fail(c, 'account mismatch', 422);
   if (body.itemId !== undefined) {
@@ -216,6 +216,8 @@ app.patch('/:id', async (c) => {
     if (categoryNumber && !(await categoryBelongsToAccount(db, categoryNumber, entry.accountId))) return fail(c, 'category not found for account', 422);
   }
   if (body.date !== undefined && !isoDate(body.date)) return fail(c, 'invalid date', 422);
+  if (body.currency !== undefined && normalizeCurrency(body.currency) !== entry.currency)
+    return fail(c, 'entry currency cannot be changed', 422);
   const updates: Record<string, unknown> = {};
 
   if (body.amount !== undefined) {
