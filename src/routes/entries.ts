@@ -102,6 +102,30 @@ app.post('/', async (c) => {
   return ok(c, created, 201);
 });
 
+// Quick-add: parse TTD lines without writing entries
+app.post('/quick/preview', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  if (!body || !body.accountId || !body.text) return fail(c, 'accountId and text are required', 422);
+  const accountId = positiveInt(body.accountId);
+  if (!accountId) return fail(c, 'invalid accountId', 422);
+  const db = getDb(c);
+  if (!(await accountExists(db, accountId))) return fail(c, 'account not found', 404);
+  const now = new Date();
+  const year = body.year ? Number(body.year) : now.getFullYear();
+  const month = body.month ? Number(body.month) : now.getMonth() + 1;
+  if (!Number.isInteger(year) || year < 1 || !Number.isInteger(month) || month < 1 || month > 12)
+    return fail(c, 'invalid year/month', 422);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const lines = String(body.text).split(/\r?\n/);
+  const parsed = lines.map((line: string) => {
+    const result = parseTtdLine(line);
+    if (!result) return line.trim() ? { raw: line, error: 'Could not parse line' } : null;
+    const day = result.day ? Math.min(result.day, daysInMonth) : now.getDate() <= daysInMonth ? now.getDate() : daysInMonth;
+    return { ...result, date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` };
+  }).filter(Boolean);
+  return ok(c, { year, month, lines: parsed });
+});
+
 // Quick-add: TTD bulk parse + create
 app.post('/quick', async (c) => {
   const body = await c.req.json().catch(() => null);
@@ -120,10 +144,12 @@ app.post('/quick', async (c) => {
   const currency = acct?.defaultCurrency ?? 'IRR';
 
   // Resolve the year/month context (defaults to current month)
-  const now = new Date();  const year = body.year ? Number(body.year) : now.getFullYear();
+  const now = new Date();
+  const year = body.year ? Number(body.year) : now.getFullYear();
   const month = body.month ? Number(body.month) : now.getMonth() + 1; // 1-12
   if (!Number.isInteger(year) || year < 1 || !Number.isInteger(month) || month < 1 || month > 12)
-    return fail(c, 'invalid year/month', 422);  const daysInMonth = new Date(year, month, 0).getDate();
+    return fail(c, 'invalid year/month', 422);
+  const daysInMonth = new Date(year, month, 0).getDate();
   const itemId = body.itemId == null || body.itemId === '' ? null : positiveInt(body.itemId);
   const categoryId = body.categoryId == null || body.categoryId === '' ? null : positiveInt(body.categoryId);
   if (body.itemId != null && body.itemId !== '' && !itemId) return fail(c, 'invalid itemId', 422);
