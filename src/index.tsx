@@ -98,7 +98,7 @@ app.get('/reports', async (c) => {
   const DB = (c.env as any).DB as D1Database;
   const { income, expense, daily } = await fetchMonthly(DB, activeAccount.id, year, month);
   const breakdown = await fetchBreakdown(DB, activeAccount.id, from, to);
-  const trends = await fetchTrends(DB, activeAccount.id, year);
+  const trends = await fetchTrends(DB, activeAccount.id, year, `${year}-01`, `${year}-${monthStr}`);
   return c.render(<ReportsView accounts={accounts} account={activeAccount} year={year} month={month} cal={cal} income={income} expense={expense} daily={daily} breakdown={breakdown} trends={trends} />);
 });
 
