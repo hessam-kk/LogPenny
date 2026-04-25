@@ -4,6 +4,7 @@ import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
 import { getDb, positiveInt } from '../lib/validation';
+import { normalizeCurrency, parseAmount } from '../lib/money';
 
 const app = new Hono();
 
@@ -23,12 +24,16 @@ app.post('/', async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body || !body.name) return fail(c, 'name is required', 422);
   const db = getDb(c);
+  const currency = normalizeCurrency(body.defaultCurrency ?? 'IRR');
+  if (!currency) return fail(c, 'unsupported currency', 422);
+  const startingBalance = parseAmount(String(body.startingBalance ?? 0), currency);
+  if (startingBalance === null) return fail(c, 'invalid startingBalance', 422);
   const [created] = await db
     .insert(schema.accounts)
     .values({
       name: String(body.name),
-      defaultCurrency: body.defaultCurrency ?? 'IRR',
-      startingBalance: Number(body.startingBalance ?? 0),
+      defaultCurrency: currency,
+      startingBalance,
     })
     .returning();
   return ok(c, created, 201);
@@ -41,12 +46,23 @@ app.patch('/:id', async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body) return fail(c, 'invalid body', 422);
   const db = getDb(c);
+  let defaultCurrency: string | undefined;
+  if (body.defaultCurrency !== undefined) {
+    defaultCurrency = normalizeCurrency(body.defaultCurrency) ?? undefined;
+    if (!defaultCurrency) return fail(c, 'unsupported currency', 422);
+  }
+  let startingBalance: number | undefined;
+  if (body.startingBalance !== undefined) {
+    const parsed = parseAmount(String(body.startingBalance), defaultCurrency ?? 'IRR');
+    if (parsed === null) return fail(c, 'invalid startingBalance', 422);
+    startingBalance = parsed;
+  }
   const [updated] = await db
     .update(schema.accounts)
     .set({
       name: body.name !== undefined ? String(body.name) : undefined,
-      defaultCurrency: body.defaultCurrency !== undefined ? String(body.defaultCurrency) : undefined,
-      startingBalance: body.startingBalance !== undefined ? Number(body.startingBalance) : undefined,
+      defaultCurrency,
+      startingBalance,
       archivedAt: body.archived !== undefined ? (body.archived ? new Date() : null) : undefined,
     })
     .where(eq(schema.accounts.id, id))
