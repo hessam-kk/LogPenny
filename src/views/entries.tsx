@@ -117,11 +117,13 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
             <div id="ttd-section" hidden style="margin-top: 12px;">
               <div class="form-group">
                 <label class="form-label" for="ttd-text">Paste lines</label>
-                <textarea class="form-control" id="ttd-text" rows={6} dir="auto"></textarea>
+                <textarea class="form-control" id="ttd-text" rows={6} dir="auto" oninput="clearTtdPreview()"></textarea>
+              <div id="ttd-preview" class="ttd-preview" hidden></div>
                 <div class="ttd-help">
                   One entry per line. Use <code>=640+90</code> or <code>-400</code> for income, plain numbers for expense.
                   Separate with <code>Tab</code> or <code>2+ spaces</code>. Trailing day-of-month optional.
                 </div>
+                <button type="button" class="btn btn-sm" onclick="previewTtd()">Preview lines</button>
               </div>
             </div>
           </form>
