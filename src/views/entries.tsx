@@ -5,16 +5,7 @@ import { shiftDisplayedMonth } from '../lib/jalali';
 import { hasPersian } from '../lib/persian';
 import { entriesScript } from './entries-script';
 
-interface EntriesViewProps {
-  accounts: Account[];
-  account: Account;
-  items: Item[];
-  entries: Entry[];
-  year: number;
-  month: number;
-  cal?: 'g' | 'j';
-  itemId?: number | null;
-}
+interface EntriesViewProps { accounts: Account[]; account: Account; items: Item[]; entries: Entry[]; year: number; month: number; cal?: 'g' | 'j'; itemId?: number | null }
 
 export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, entries, year, month, cal = 'g', itemId = null }) => {
   const currency = account.defaultCurrency;
@@ -26,176 +17,23 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
   const calQ = cal === 'j' ? 'cal=j&' : '';
   const itemQ = itemId ? `item_id=${itemId}&` : '';
   const acctQ = `account_id=${account.id}&${itemQ}${calQ}`;
-
-  return (
-    <>
-      <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/entries" />
-      <Tabs active="entries" accountId={account.id} cal={cal} />
-
-      <div class="app-shell">
-        <div class="month-nav">
-          <a class="month-nav-btn" href={`/entries?${acctQ}year=${previous.gy}&month=${previous.gm}`}>&#8249; {monthLabel(previous.gy, previous.gm, cal)}</a>
-          <div class="month-nav-title">{formatMonthYear(year, month, cal)}</div>
-          <a class="month-nav-btn" href={`/entries?${acctQ}year=${next.gy}&month=${next.gm}`}>{monthLabel(next.gy, next.gm, cal)} &#8250;</a>
-        </div>
-
-        <div class="stats">
-          <div class="stat anim-stat">
-            <div class="stat-label">Income</div>
-            <div class="stat-value income anim-count" data-target={income} data-prefix="+" data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(income, currency)}</div>
-          </div>
-          <div class="stat anim-stat">
-            <div class="stat-label">Expense</div>
-            <div class="stat-value expense anim-count" data-target={Math.abs(expense)} data-prefix={'\u2212'} data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(expense, currency)}</div>
-          </div>
-          <div class="stat anim-stat">
-            <div class="stat-label">Net</div>
-            <div class="stat-value anim-count" style={net >= 0 ? 'color:var(--income)' : 'color:var(--expense)'} data-target={Math.abs(net)} data-prefix={net >= 0 ? '+' : '\u2212'} data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>
-              {net >= 0 ? '+' : '\u2212'}{formatAmount(Math.abs(net), currency)}
-            </div>
-          </div>
-        </div>
-
-        {entries.length === 0 ? (
-          <div class="card empty">
-            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            <div class="empty-title">No entries yet</div>
-            <div>Tap the + button to add your first entry for {formatMonthYear(year, month, cal)}.</div>
-          </div>
-        ) : (
-          <div class="entry-list">
-            {entries.map((e) => <EntryRow key={e.id} entry={e} currency={currency} items={items} />)}
-          </div>
-        )}
+  return (<>
+    <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/entries" />
+    <Tabs active="entries" accountId={account.id} cal={cal} />
+    <div class="app-shell">
+      <div class="month-nav"><a class="month-nav-btn" href={`/entries?${acctQ}year=${previous.gy}&month=${previous.gm}`}>&#8249; {monthLabel(previous.gy, previous.gm, cal)}</a><div class="month-nav-title">{formatMonthYear(year, month, cal)}</div><a class="month-nav-btn" href={`/entries?${acctQ}year=${next.gy}&month=${next.gm}`}>{monthLabel(next.gy, next.gm, cal)} &#8250;</a></div>
+      <div class="stats">
+        <div class="stat anim-stat"><div class="stat-label">Income</div><div class="stat-value income anim-count" data-target={income} data-prefix="+" data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(income, currency)}</div></div>
+        <div class="stat anim-stat"><div class="stat-label">Expense</div><div class="stat-value expense anim-count" data-target={Math.abs(expense)} data-prefix={'\u2212'} data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(expense, currency)}</div></div>
+        <div class="stat anim-stat"><div class="stat-label">Net</div><div class="stat-value anim-count" style={net >= 0 ? 'color:var(--income)' : 'color:var(--expense)'} data-target={Math.abs(net)} data-prefix={net >= 0 ? '+' : '\u2212'} data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{net >= 0 ? '+' : '\u2212'}{formatAmount(Math.abs(net), currency)}</div></div>
       </div>
-
-      <button class="fab" onclick="openAddModal()" aria-label="Add entry">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-
-      <div id="add-modal" class="modal-backdrop" hidden onclick="if(event.target===this)closeModal()">
-        <div class="modal">
-          <div class="modal-head">
-            <div class="modal-title" id="modal-title">New entry</div>
-            <button class="icon-btn" onclick="closeModal()" aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <form id="entry-form" class="modal-body">
-            <input type="hidden" id="entry-id" name="id" />
-            <input type="hidden" id="context-item-id" value={itemId ?? ''} />
-            <div class="form-group">
-              <label class="form-label" for="amount">Amount</label>
-              <input class="form-control font-mono" type="text" id="amount" name="amount" placeholder="640" inputmode="decimal" autocomplete="off" required />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Direction</label>
-              <div class="radio-group">
-                <label class="radio-pill">
-                  <input type="radio" name="direction" value="out" checked /> Expense
-                </label>
-                <label class="radio-pill">
-                  <input type="radio" name="direction" value="in" /> Income
-                </label>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="title">Title</label>
-              <input class="form-control" type="text" id="title" name="title" placeholder="What is this for\u2026" dir="auto" required />
-            </div>
-            <div class="form-row two">
-              <div class="form-group">
-                <label class="form-label" for="date">Date</label>
-                <input class="form-control" type="date" id="date" name="date" required />
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="itemId">Item</label>
-                <select class="form-control" id="itemId" name="itemId">
-                  <option value="">Standalone</option>
-                  {items.map((it) => <option value={it.id}>{it.title}</option>)}
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="notes">Notes</label>
-              <textarea class="form-control" id="notes" name="notes" dir="auto" placeholder="Optional details\u2026"></textarea>
-            </div>
-            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-              <button type="button" class="btn btn-sm" onclick="toggleTtd()">Quick add (TTD)</button>
-              <button type="button" class="btn btn-sm" onclick="toggleImport()">Import Excel</button>
-            </div>
-            <div id="import-section" hidden style="margin-top:10px">
-              <div class="form-group">
-                <label class="form-label" for="import-sheet">Sheet</label>
-                <select class="form-control" id="import-sheet"></select>
-              </div>
-              <div class="form-group">
-                <label class="form-label" for="import-file">Excel file (.xlsx)</label>
-                <input class="form-control" type="file" id="import-file" accept=".xlsx" onchange="handleImportFile(event)" />
-              </div>
-              <div id="import-preview" class="ttd-preview" hidden></div>
-              <button type="button" class="btn btn-sm" onclick="doImport()" style="margin-top:8px">Import rows</button>
-            </div>
-            <div id="ttd-section" hidden style="margin-top:10px">
-              <div class="form-group">
-                <label class="form-label" for="ttd-text">Paste lines</label>
-                <textarea class="form-control font-mono" id="ttd-text" rows={6} dir="auto" oninput="clearTtdPreview()"></textarea>
-                <div id="ttd-preview" class="ttd-preview" hidden></div>
-                <div class="ttd-help">
-                  One entry per line. Use <code>=640+90</code> or <code>-400</code> for income, plain numbers for expense.
-                  Separate with <code>Tab</code> or <code>2+ spaces</code>. Trailing day-of-month optional.
-                </div>
-                <button type="button" class="btn btn-sm" onclick="previewTtd()" style="margin-top:8px">Preview lines</button>
-              </div>
-            </div>
-          </form>
-          <div id="entry-status" class="form-status" role="status" aria-live="polite"></div>
-          <div class="modal-foot">
-            <button type="button" class="btn btn-danger-solid btn-sm" id="delete-btn" hidden onclick="deleteEntry()">Delete entry</button>
-            <button type="button" class="btn" onclick="closeModal()">Cancel</button>
-            <button type="button" class="btn btn-primary" onclick="submitEntry()" id="submit-btn">Save</button>
-          </div>
-        </div>
-      </div>
-      <script dangerouslySetInnerHTML={{ __html: entriesScript(account.id, year, month) }} />
-    </>
-  );
+      {entries.length === 0 ? <div class="card empty anim-card-up"><svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><div class="empty-title">No entries yet</div><div>Tap the + button to add your first entry for {formatMonthYear(year, month, cal)}.</div></div> : <div class="entry-list">{entries.map((e) => <EntryRow key={e.id} entry={e} currency={currency} items={items} />)}</div>}
+    </div>
+    <button class="fab" onclick="openAddModal()" aria-label="Add entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <div id="add-modal" class="modal-backdrop" hidden onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-head"><div class="modal-title" id="modal-title">New entry</div><button class="icon-btn" onclick="closeModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div><form id="entry-form" class="modal-body"><input type="hidden" id="entry-id" name="id"/><input type="hidden" id="context-item-id" value={itemId ?? ''}/><div class="form-group"><label class="form-label" for="amount">Amount</label><input class="form-control font-mono" type="text" id="amount" name="amount" placeholder="640" inputmode="decimal" autocomplete="off" required/></div><div class="form-group"><label class="form-label">Direction</label><div class="radio-group"><label class="radio-pill"><input type="radio" name="direction" value="out" checked/> Expense</label><label class="radio-pill"><input type="radio" name="direction" value="in"/> Income</label></div></div><div class="form-group"><label class="form-label" for="title">Title</label><input class="form-control" type="text" id="title" name="title" placeholder="What is this for\u2026" dir="auto" required/></div><div class="form-row two"><div class="form-group"><label class="form-label" for="date">Date</label><input class="form-control" type="date" id="date" name="date" required/></div><div class="form-group"><label class="form-label" for="itemId">Item</label><select class="form-control" id="itemId" name="itemId"><option value="">Standalone</option>{items.map((it) => <option value={it.id}>{it.title}</option>)}</select></div></div><div class="form-group"><label class="form-label" for="notes">Notes</label><textarea class="form-control" id="notes" name="notes" dir="auto" placeholder="Optional details\u2026"></textarea></div><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-sm" onclick="toggleTtd()">Quick add (TTD)</button><button type="button" class="btn btn-sm" onclick="toggleImport()">Import Excel</button></div><div id="import-section" hidden style="margin-top:10px"><div class="form-group"><label class="form-label" for="import-sheet">Sheet</label><select class="form-control" id="import-sheet"></select></div><div class="form-group"><label class="form-label" for="import-file">Excel file (.xlsx)</label><input class="form-control" type="file" id="import-file" accept=".xlsx" onchange="handleImportFile(event)"/></div><div id="import-preview" class="ttd-preview" hidden></div><button type="button" class="btn btn-sm" onclick="doImport()" style="margin-top:8px">Import rows</button></div><div id="ttd-section" hidden style="margin-top:10px"><div class="form-group"><label class="form-label" for="ttd-text">Paste lines</label><textarea class="form-control font-mono" id="ttd-text" rows={6} dir="auto" oninput="clearTtdPreview()"></textarea><div id="ttd-preview" class="ttd-preview" hidden></div><div class="ttd-help">One entry per line. Use <code>=640+90</code> or <code>-400</code> for income, plain numbers for expense. Separate with <code>Tab</code> or <code>2+ spaces</code>. Trailing day-of-month optional.</div><button type="button" class="btn btn-sm" onclick="previewTtd()" style="margin-top:8px">Preview lines</button></div></div></form><div id="entry-status" class="form-status" role="status" aria-live="polite"></div><div class="modal-foot"><button type="button" class="btn btn-danger-solid btn-sm" id="delete-btn" hidden onclick="deleteEntry()">Delete entry</button><button type="button" class="btn" onclick="closeModal()">Cancel</button><button type="button" class="btn btn-primary" onclick="submitEntry()" id="submit-btn">Save</button></div></div></div>
+    <script dangerouslySetInnerHTML={{ __html: entriesScript(account.id, year, month) }} />
+  </>);
 };
 
 interface EntryRowProps { entry: Entry; currency: string; items: Item[] }
-
-const EntryRow: FC<EntryRowProps> = ({ entry, currency, items }) => {
-  const day = entry.date.slice(8, 10);
-  const item = items.find((i) => i.id === entry.itemId);
-  const esc = JSON.stringify(entry).replace(/"/g, '&quot;');
-  return (
-    <button class="entry anim-entry" onclick={`openEditModal(${esc})`} style="width:100%;text-align:left;padding-right:8px">
-      <div class="entry-day">{Number(day)}</div>
-      <div class="entry-body">
-        <div class="entry-title">
-          <span class={hasPersian(entry.title) ? 'persian' : ''}>{entry.title}</span>
-        </div>
-        <div class="entry-meta">
-          {entry.direction === 'in' ? 'Income' : 'Expense'}
-          {item ? <><span style="opacity:.35;margin:0 2px">\u00B7</span><span class={hasPersian(item.title) ? 'persian' : ''}>{item.title}</span></> : null}
-          {entry.notes ? (
-            <svg class="entry-meta-icon" style="margin-left:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          ) : null}
-        </div>
-      </div>
-      <div class={`entry-amount ${entry.direction === 'in' ? 'in' : 'out'}`}>
-        {entry.direction === 'in' ? '+' : '\u2212'}{formatAmount(entry.amount, currency)}
-      </div>
-      <div class="entry-actions" onclick="event.stopPropagation()">
-        <button class="entry-action-btn" onclick={`openEditModal(${esc})`} aria-label="Edit" title="Edit">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button class="entry-action-btn entry-action-del" onclick={`deleteEntryById(${entry.id})`} aria-label="Delete" title="Delete">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
-      </div>
-    </button>
-  );
-};
+const EntryRow: FC<EntryRowProps> = ({ entry, currency, items }) => { const day = entry.date.slice(8, 10); const item = items.find((i) => i.id === entry.itemId); const esc = JSON.stringify(entry).replace(/"/g, '&quot;'); return (<div class={`entry anim-entry ${entry.direction === 'in' ? 'entry-income' : 'entry-expense'}`}><button class="entry-main" onclick={`openEditModal(${esc})`} aria-label={`Edit entry: ${entry.title}`}><div class="entry-day">{Number(day)}</div><div class="entry-body"><div class="entry-title"><span class={hasPersian(entry.title) ? 'persian' : ''}>{entry.title}</span></div><div class="entry-meta">{entry.direction === 'in' ? 'Income' : 'Expense'}{item ? <><span style="opacity:.35;margin:0 2px">\u00B7</span><span class={hasPersian(item.title) ? 'persian' : ''}>{item.title}</span></> : null}{entry.notes ? <svg class="entry-meta-icon" style="margin-left:4px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> : null}</div></div><div class={`entry-amount ${entry.direction === 'in' ? 'in' : 'out'}`}>{entry.direction === 'in' ? '+' : '\u2212'}{formatAmount(entry.amount, currency)}</div></button><div class="entry-actions"><button class="entry-action-btn entry-action-del" onclick={`deleteEntryById(${entry.id})`} aria-label="Delete entry" title="Delete entry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>); };
