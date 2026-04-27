@@ -22,6 +22,11 @@ function openAddModal() {
   document.getElementById('add-modal').hidden = false;
 }
 
+function openEntryFromButton(button) {
+  try { openEditModal(JSON.parse(button.dataset.entry)); }
+  catch { document.getElementById('entry-status').textContent = 'Could not open this entry.'; }
+}
+
 function openEditModal(entry) {
   document.getElementById('modal-title').textContent = 'Edit entry';
   document.getElementById('entry-id').value = entry.id;
@@ -146,6 +151,7 @@ async function deleteEntryById(id) {
   }
 }
 window.openEditModal = openEditModal;
+window.openEntryFromButton = openEntryFromButton;
 window.openAddModal = openAddModal;
 window.closeModal = closeModal;
 window.toggleTtd = toggleTtd;
