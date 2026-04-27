@@ -458,13 +458,11 @@ export const STYLES_CHARTS = `
 export const STYLES_UTILS = `
 /* ═══════════ Utilities ═══════════ */
 
-/* Theme icon visibility */
 .theme-icon-light{display:inline}
 .theme-icon-dark{display:none}
 [data-theme="dark"] .theme-icon-light{display:none}
 [data-theme="dark"] .theme-icon-dark{display:inline}
 
-/* Calendar toggle */
 .cal-toggle{
   width:34px;height:34px;border-radius:6px;
   display:grid;place-items:center;font-size:11px;font-weight:700;
@@ -475,18 +473,195 @@ export const STYLES_UTILS = `
 }
 .cal-toggle:hover{color:var(--accent);background:var(--accent-soft);border-color:var(--accent)}
 
-/* Persian */
 .persian{font-family:var(--font-persian)}
 
-/* Motion */
+[hidden]{display:none !important}
+
+/* ═══════════ Animation System ═══════════ */
+
+/* ── Entry stagger reveal ── */
+.anim-entry{
+  opacity:0;transform:translateY(12px);
+  animation:entry-in .35s cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes entry-in{
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ── Stat card reveal ── */
+.anim-stat{
+  opacity:0;transform:translateY(8px);
+  animation:stat-in .3s .08s cubic-bezier(.22,.61,.36,1) forwards;
+}
+.anim-stat:nth-child(2){animation-delay:.14s}
+.anim-stat:nth-child(3){animation-delay:.20s}
+@keyframes stat-in{
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ── Card reveal ── */
+.anim-card-up{
+  opacity:0;transform:translateY(16px);
+  animation:card-up .45s .25s cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes card-up{
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ── Item card reveal ── */
+.anim-item-card{
+  opacity:0;transform:translateY(10px);
+  animation:item-in .3s calc(var(--i,0)*.06s + .15s) cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes item-in{
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ── Card hover lift ── */
+.card,.stat,.item-card,.entry{
+  transition:transform .2s cubic-bezier(.22,.61,.36,1),
+             box-shadow .2s cubic-bezier(.22,.61,.36,1),
+             border-color .15s,background .15s;
+}
+.card:hover,.stat:hover{
+  transform:translateY(-2px);
+  box-shadow:0 4px 20px rgba(30,26,23,.12),var(--shadow);
+}
+
+/* ── Chart bar grow ── */
+.chart-bar-in,.chart-bar-out{
+  animation:bar-grow .5s .3s cubic-bezier(.22,.61,.36,1) backwards;
+  transform-origin:bottom;
+}
+@keyframes bar-grow{
+  from{transform:scaleY(0)}
+  to{transform:scaleY(1)}
+}
+
+/* ── Breakdown row reveal ── */
+.breakdown-row{
+  opacity:0;transform:translateX(-8px);
+  animation:breakdown-in .3s calc(var(--br-i,0)*.05s + .3s) cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes breakdown-in{
+  to{opacity:1;transform:translateX(0)}
+}
+
+/* ── Modal: backdrop fade + slide up ── */
+.modal-backdrop:not([hidden]){
+  animation:backdrop-in .2s cubic-bezier(.22,.61,.36,1) forwards;
+}
+.modal-backdrop:not([hidden]) .modal{
+  animation:modal-up .3s .05s cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes backdrop-in{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes modal-up{
+  from{opacity:0;transform:translateY(40px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@media(min-width:640px){
+  @keyframes modal-up{
+    from{opacity:0;transform:translateY(20px) scale(.97)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+}
+
+/* ── FAB entrance + pulse ── */
+.fab{
+  animation:fab-in .35s .4s cubic-bezier(.22,.61,.36,1) backwards;
+}
+@keyframes fab-in{
+  from{opacity:0;transform:scale(.7) translateY(12px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+.fab::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:2px solid var(--accent);opacity:0;
+  animation:fab-pulse 2.5s 1.5s ease-out infinite;
+  pointer-events:none;
+}
+@keyframes fab-pulse{
+  0%{opacity:.4;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.5)}
+}
+
+/* ── Theme transition ── */
+html{
+  transition:background-color .4s ease,color .3s ease;
+}
+*,*::before,*::after{
+  transition-timing-function:cubic-bezier(.22,.61,.36,1);
+}
+
+/* ── Ruled-line parallax on scroll ── */
+body{
+  background-attachment:fixed;
+  animation:rule-drift 120s linear infinite;
+}
+@keyframes rule-drift{
+  0%,100%{background-position-y:0}
+  50%{background-position-y:calc(var(--ruling-size) * 0.5)}
+}
+
+/* ── Button ink press ── */
+.btn:active:not([disabled]){
+  animation:ink-press .25s cubic-bezier(.22,.61,.36,1);
+}
+@keyframes ink-press{
+  0%{transform:scale(1)}
+  30%{transform:scale(.94)}
+  100%{transform:scale(.97)}
+}
+
+/* ── Empty state ── */
+.empty-icon{
+  animation:empty-float 3s ease-in-out infinite;
+}
+@keyframes empty-float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+
+/* ── Brand mark shimmer ── */
+.brand-mark{
+  position:relative;overflow:hidden;
+}
+.brand-mark::after{
+  content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  animation:shimmer 3s 2s ease-in-out infinite;
+}
+@keyframes shimmer{
+  0%{left:-100%}
+  40%{left:120%}
+  100%{left:120%}
+}
+
+/* ── Section slide-in (for items page header) ── */
+.slide-in{
+  opacity:0;transform:translateY(-6px);
+  animation:slide-in .3s .1s cubic-bezier(.22,.61,.36,1) forwards;
+}
+@keyframes slide-in{
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ── Motion reduction ── */
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{
     animation-duration:.01ms !important;animation-iteration-count:1 !important;
     scroll-behavior:auto !important;transition-duration:.01ms !important;
   }
+  .anim-entry,.anim-stat,.anim-card-up,.anim-item-card,
+  .breakdown-row,.chart-bar-in,.chart-bar-out,
+  .modal-backdrop:not([hidden]) .modal,
+  .fab,.slide-in{
+    opacity:1;transform:none;
+  }
 }
-
-[hidden]{display:none !important}
 `;
 
 export const ALL_STYLES = STYLES + STYLES_NAV + STYLES_CARDS + STYLES_FORMS + STYLES_CHARTS + STYLES_UTILS;
