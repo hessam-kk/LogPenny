@@ -11,26 +11,26 @@ export const STYLES = `
 /* ── Tokens: Light (day ledger) ── */
 :root {
   color-scheme: light;
-  --paper:        #F9F5EF;
-  --paper-card:   #FFFCF7;
-  --paper-inset:  #F3EFE8;
-  --ink:          #1E1A17;
-  --ink-muted:    #78736C;
-  --ink-faint:    #B8B3AA;
-  --rule:         #E4DED4;
-  --accent:       #4A5A90;
+  --paper:        #F4F7FB;
+  --paper-card:   rgba(255,255,255,.9);
+  --paper-inset:  #EEF3F9;
+  --ink:          #14213D;
+  --ink-muted:    #667085;
+  --ink-faint:    #98A2B3;
+  --rule:         #DCE4EF;
+  --accent:       #3158D8;
   --accent-text:  #FFFFFF;
-  --accent-soft:  rgba(74,90,144,.08);
-  --income:       #1B7A5D;
-  --income-soft:  rgba(27,122,93,.08);
-  --expense:      #C43E3E;
-  --expense-soft: rgba(196,62,62,.08);
-  --shadow-sm:   0 1px 2px rgba(30,26,23,.04);
-  --shadow:      0 1px 3px rgba(30,26,23,.05), 0 2px 8px rgba(30,26,23,.04);
-  --shadow-lg:   0 4px 24px rgba(30,26,23,.07), 0 8px 32px rgba(30,26,23,.05);
-  --radius-sm:   8px;
-  --radius:      12px;
-  --radius-lg:   16px;
+  --accent-soft:  rgba(49,88,216,.08);
+  --income:       #079669;
+  --income-soft:  rgba(7,150,105,.09);
+  --expense:      #E05252;
+  --expense-soft: rgba(224,82,82,.09);
+  --shadow-sm:   0 1px 2px rgba(20,33,61,.04);
+  --shadow:      0 4px 16px rgba(20,33,61,.06);
+  --shadow-lg:   0 16px 40px rgba(20,33,61,.12);
+  --radius-sm:   10px;
+  --radius:      16px;
+  --radius-lg:   22px;
   --max-w:       896px;
   --font-display: 'Fraunces', 'Georgia', 'Times New Roman', serif;
   --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -44,23 +44,23 @@ export const STYLES = `
 /* ── Tokens: Dark (night ledger) ── */
 [data-theme="dark"] {
   color-scheme: dark;
-  --paper:        #1C1815;
-  --paper-card:   #25221E;
-  --paper-inset:  #1F1C19;
-  --ink:          #EFE9E0;
-  --ink-muted:    #928D86;
-  --ink-faint:    #5C5853;
-  --rule:         #2E2B26;
-  --accent:       #8AA0D4;
-  --accent-text:  #1C1815;
-  --accent-soft:  rgba(138,160,212,.10);
-  --income:       #5BB89B;
-  --income-soft:  rgba(91,184,155,.10);
-  --expense:      #E07070;
-  --expense-soft: rgba(224,112,112,.10);
-  --shadow-sm:   0 1px 2px rgba(0,0,0,.20);
-  --shadow:      0 1px 3px rgba(0,0,0,.25), 0 2px 8px rgba(0,0,0,.20);
-  --shadow-lg:   0 4px 24px rgba(0,0,0,.35), 0 8px 32px rgba(0,0,0,.25);
+  --paper:        #0B1220;
+  --paper-card:   rgba(20,31,52,.9);
+  --paper-inset:  #111C30;
+  --ink:          #F5F8FF;
+  --ink-muted:    #A7B2C7;
+  --ink-faint:    #66738C;
+  --rule:         #263653;
+  --accent:       #7B96FF;
+  --accent-text:  #08101F;
+  --accent-soft:  rgba(123,150,255,.12);
+  --income:       #4ED5AA;
+  --income-soft:  rgba(78,213,170,.12);
+  --expense:      #FF8585;
+  --expense-soft: rgba(255,133,133,.12);
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.2);
+  --shadow:      0 8px 24px rgba(0,0,0,.2);
+  --shadow-lg:   0 20px 50px rgba(0,0,0,.35);
 }
 
 /* ── Reset & Base ── */
@@ -72,13 +72,8 @@ body{
   font-size:14px;line-height:var(--leading);
   background-color:var(--paper);
   background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent calc(var(--ruling-size) - 1px),
-      var(--rule) calc(var(--ruling-size) - 1px),
-      var(--rule) var(--ruling-size)
-    );
+    radial-gradient(circle at 8% 0%, rgba(49,88,216,.10), transparent 28rem),
+    radial-gradient(circle at 92% 12%, rgba(7,150,105,.06), transparent 24rem);
   background-attachment:fixed;
   color:var(--ink);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
@@ -105,9 +100,9 @@ export const STYLES_NAV = `
 
 .topbar{
   position:sticky;top:0;z-index:50;
-  background:var(--paper-card);
+  background:color-mix(in srgb,var(--paper-card) 86%,transparent);
   border-bottom:1px solid var(--rule);
-  backdrop-filter:blur(12px);
+  backdrop-filter:blur(18px);
   -webkit-backdrop-filter:blur(12px);
 }
 .topbar-inner{
@@ -172,6 +167,7 @@ export const STYLES_CARDS = `
   background:var(--paper-card);
   border:1px solid var(--rule);border-radius:var(--radius);
   box-shadow:var(--shadow);padding:20px;
+  backdrop-filter:blur(12px);
 }
 @media(min-width:768px){.card{padding:24px}}
 
@@ -189,8 +185,9 @@ export const STYLES_CARDS = `
 
 .stat{
   background:var(--paper-card);
-  border:1px solid var(--rule);border-radius:var(--radius-sm);
-  padding:16px;box-shadow:var(--shadow-sm);
+  border:1px solid var(--rule);border-radius:var(--radius);
+  padding:18px;box-shadow:var(--shadow-sm);
+  backdrop-filter:blur(12px);
 }
 .stat-label{
   font-family:var(--font-display);font-size:11px;font-weight:600;
@@ -207,17 +204,23 @@ export const STYLES_CARDS = `
 .entry-list{display:flex;flex-direction:column;gap:6px}
 
 .entry{
-  display:flex;align-items:center;gap:12px;
-  padding:13px 16px;
+  display:flex;align-items:center;gap:0;
+  padding:4px 8px;
   background:var(--paper-card);
   border:1px solid var(--rule);border-radius:var(--radius-sm);
   box-shadow:var(--shadow-sm);
   transition:border-color .15s,background .15s,transform .1s;
   width:100%;text-align:left;
 }
-.entry:hover,.entry:focus-visible{
+.entry:hover,.entry:focus-within{
   border-color:var(--accent);background:var(--accent-soft);
 }
+.entry-main{
+  display:flex;align-items:center;gap:12px;flex:1;min-width:0;
+  padding:9px 8px 9px 8px;border:0;background:transparent;
+  color:inherit;text-align:left;cursor:pointer;
+}
+.entry-main:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:var(--radius-sm)}
 .entry:active{transform:scale(.992)}
 
 .entry-day{
@@ -244,12 +247,14 @@ export const STYLES_CARDS = `
 .entry-amount.in{color:var(--income)}
 .entry-amount.out{color:var(--expense)}
 
-.entry-actions{display:flex;gap:2px;margin-left:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.entry-income{border-left:3px solid var(--income)}
+.entry-expense{border-left:3px solid var(--expense)}
+.entry-actions{display:flex;gap:2px;margin-right:8px;flex-shrink:0;opacity:0;transition:opacity .15s}
 .entry:hover .entry-actions,
 .entry:focus-within .entry-actions{opacity:1}
-@media(hover:none){.entry-actions{opacity:.45}}
+@media(hover:none){.entry-actions{opacity:1}}
 .entry-action-btn{
-  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
   border:none;background:transparent;color:var(--ink-muted);
   border-radius:50%;cursor:pointer;
   transition:color .15s,background .15s;
@@ -421,7 +426,7 @@ export const STYLES_CHARTS = `
 
 .item-card{padding:18px;position:relative}
 .item-card-close{
-  position:absolute;top:10px;right:10px;
+  position:absolute;top:12px;right:12px;
   width:28px;height:28px;display:flex;align-items:center;justify-content:center;
   border:none;background:transparent;color:var(--ink-muted);
   border-radius:50%;cursor:pointer;opacity:.4;
