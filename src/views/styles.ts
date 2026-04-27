@@ -244,6 +244,20 @@ export const STYLES_CARDS = `
 .entry-amount.in{color:var(--income)}
 .entry-amount.out{color:var(--expense)}
 
+.entry-actions{display:flex;gap:2px;margin-left:4px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.entry:hover .entry-actions,
+.entry:focus-within .entry-actions{opacity:1}
+@media(hover:none){.entry-actions{opacity:.45}}
+.entry-action-btn{
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  border:none;background:transparent;color:var(--ink-muted);
+  border-radius:50%;cursor:pointer;
+  transition:color .15s,background .15s;
+}
+.entry-action-btn:hover{color:var(--ink);background:rgba(0,0,0,.06)}
+.entry-action-btn svg{width:14px;height:14px}
+.entry-action-del:hover{color:var(--expense);background:rgba(220,38,38,.08)}
+
 /* Empty */
 .empty{text-align:center;padding:40px 20px;color:var(--ink-muted)}
 .empty-icon{display:block;width:40px;height:40px;margin:0 auto 12px;opacity:.3}
