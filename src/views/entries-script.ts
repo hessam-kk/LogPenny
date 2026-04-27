@@ -131,6 +131,20 @@ async function deleteEntry() {
 }
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// Inline delete — no modal needed
+async function deleteEntryById(id) {
+  if (!id) return;
+  if (!confirm('Delete this entry?')) return;
+  try {
+    const res = await fetch('/api/v1/entries/' + id + '?account_id=' + ACCOUNT_ID, { method: 'DELETE' });
+    const json = await res.json();
+    if (json.ok) { window.location.reload(); }
+    else { alert(json.error || 'Could not delete entry.'); }
+  } catch {
+    alert('Network error. Please try again.');
+  }
+}
 window.openEditModal = openEditModal;
 window.openAddModal = openAddModal;
 window.closeModal = closeModal;
@@ -262,6 +276,7 @@ async function doImport() {
 window.toggleImport = toggleImport;
 window.handleImportFile = handleImportFile;
 window.doImport = doImport;
+window.deleteEntryById = deleteEntryById;
 window.submitEntry = submitEntry;
 window.deleteEntry = deleteEntry;
 `;
