@@ -42,6 +42,9 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
               const net = t ? t.income - t.expense : 0;
               return (
                 <div class="card item-card anim-item-card" style="display:block;color:inherit">
+                  <button class="item-card-close" onclick={`archiveItem(${it.id})`} aria-label={`Archive ${it.title}`} title="Archive item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                   <div class="item-card-title">
                     <span class={hasPersian(it.title) ? 'persian' : ''}>{it.title}</span>
                   </div>
@@ -198,11 +201,24 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
             }
           }
 
+          async function archiveItem(id) {
+            if (!confirm('Archive this item? Its entries will be kept.')) return;
+            try {
+              const res = await fetch('/api/v1/items/' + id + '?account_id=' + ACCOUNT_ID, { method: 'DELETE' });
+              const json = await res.json();
+              if (json.ok) { window.location.reload(); }
+              else { alert(json.error || 'Could not archive item.'); }
+            } catch {
+              alert('Network error. Please try again.');
+            }
+          }
+
           window.openItemModal = openItemModal;
           window.openItemEdit = openItemEdit;
           window.closeItemModal = closeItemModal;
           window.submitItem = submitItem;
           window.deleteItem = deleteItem;
+          window.archiveItem = archiveItem;
           document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeItemModal(); });
         `,
       }} />
