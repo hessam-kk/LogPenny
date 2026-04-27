@@ -3,7 +3,7 @@ import type { FC } from 'hono/jsx';
 export const SetupView: FC = () => {
   return (
     <div class="app-shell" style="padding-top:60px;max-width:460px">
-      <div class="card">
+      <div class="card anim-card-up" style="animation-delay:.05s">
         <div style="text-align:center;margin-bottom:24px">
           <svg style="display:block;width:48px;height:48px;margin:0 auto 12px;color:var(--accent)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
