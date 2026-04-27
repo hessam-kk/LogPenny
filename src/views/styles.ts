@@ -83,10 +83,10 @@ body{
   font-size:14px;line-height:var(--leading);
   background-color:var(--paper);
   background-image:
-    radial-gradient(circle at 12% -5%, rgba(49,88,216,.32), transparent 34rem),
-    radial-gradient(circle at 88% 10%, rgba(7,150,105,.22), transparent 30rem),
-    radial-gradient(circle at 15% 95%, rgba(224,82,82,.14), transparent 32rem),
-    radial-gradient(circle at 85% 75%, rgba(123,150,255,.20), transparent 34rem);
+    radial-gradient(circle at 12% -5%, rgba(49,88,216,.40), transparent 34rem),
+    radial-gradient(circle at 88% 10%, rgba(7,150,105,.28), transparent 30rem),
+    radial-gradient(circle at 15% 95%, rgba(224,82,82,.18), transparent 32rem),
+    radial-gradient(circle at 85% 75%, rgba(123,150,255,.26), transparent 34rem);
   background-attachment:fixed;
   background-size:100% 100%;
   color:var(--ink);
@@ -389,7 +389,9 @@ select.form-control{
   position:relative;
   width:100%;max-width:520px;max-height:90dvh;overflow-y:auto;
   overscroll-behavior:contain;
-  background:color-mix(in srgb,var(--paper-card) 78%,transparent);
+  background:linear-gradient(165deg,
+    color-mix(in srgb,var(--paper-card) 62%,transparent),
+    color-mix(in srgb,var(--paper-card) 38%,color-mix(in srgb,var(--accent) 6%,transparent)));
   border-radius:var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow:var(--shadow-lg),var(--glass-hi);border:1px solid var(--glass-border);
   backdrop-filter:blur(44px) saturate(190%);
@@ -398,8 +400,8 @@ select.form-control{
 .modal::before{
   content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:
-    radial-gradient(circle at 18% -12%, rgba(255,255,255,.16), transparent 46%),
-    radial-gradient(circle at 88% 108%, rgba(255,255,255,.08), transparent 44%);
+    radial-gradient(circle at 18% -12%, color-mix(in srgb,var(--accent) 9%,transparent), transparent 46%),
+    radial-gradient(circle at 88% 108%, color-mix(in srgb,var(--income) 6%,transparent), transparent 44%);
   z-index:0;
 }
 .modal>*{position:relative;z-index:1}
@@ -409,7 +411,7 @@ select.form-control{
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 20px;border-bottom:1px solid var(--glass-border);
   position:sticky;top:0;z-index:2;
-  background:linear-gradient(180deg,color-mix(in srgb,var(--paper-card) 92%,transparent),color-mix(in srgb,var(--paper-card) 55%,transparent));
+  background:linear-gradient(180deg,color-mix(in srgb,var(--paper-card) 80%,transparent),color-mix(in srgb,var(--paper-card) 35%,transparent));
   backdrop-filter:blur(24px) saturate(180%);
   -webkit-backdrop-filter:blur(24px) saturate(180%);
   box-shadow:var(--glass-hi);
@@ -430,7 +432,7 @@ select.form-control{
   padding:14px 20px;border-top:1px solid var(--glass-border);
   display:flex;gap:8px;justify-content:flex-end;
   position:sticky;bottom:0;z-index:2;
-  background:linear-gradient(0deg,color-mix(in srgb,var(--paper-card) 92%,transparent),color-mix(in srgb,var(--paper-card) 55%,transparent));
+  background:linear-gradient(0deg,color-mix(in srgb,var(--paper-card) 80%,transparent),color-mix(in srgb,var(--paper-card) 35%,transparent));
   backdrop-filter:blur(24px) saturate(180%);
   -webkit-backdrop-filter:blur(24px) saturate(180%);
   box-shadow:0 -1px 0 var(--glass-border);
