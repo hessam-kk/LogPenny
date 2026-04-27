@@ -20,6 +20,40 @@ const CAL_INIT = `
 })();
 `;
 
+const PAGE_ANIM = `
+(function(){
+  try{
+    var entries=document.querySelectorAll('.anim-entry');
+    for(var i=0;i<entries.length;i++){
+      entries[i].style.animationDelay=(i*.04+.12)+'s';
+    }
+    var items=document.querySelectorAll('.anim-item-card');
+    for(var i=0;i<items.length;i++){
+      items[i].style.setProperty('--i',i);
+    }
+    var rows=document.querySelectorAll('.breakdown-row');
+    for(var i=0;i<rows.length;i++){
+      rows[i].style.setProperty('--br-i',i);
+    }
+    // Stat count-up
+    document.querySelectorAll('.anim-count').forEach(function(el){
+      var target=parseFloat(el.getAttribute('data-target'));
+      if(isNaN(target))return;
+      var prefix=el.getAttribute('data-prefix')||'';
+      var suffix=el.getAttribute('data-suffix')||'';
+      var duration=600;var start=performance.now();
+      function tick(now){
+        var p=Math.min((now-start)/duration,1);
+        var eased=1-Math.pow(1-p,3);
+        el.textContent=prefix+Math.round(target*eased).toLocaleString('en-US')+suffix;
+        if(p<1)requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }catch(e){}
+})();
+`;
+
 const THEME_TOGGLE = `
 window.toggleTheme=function(){
   var c=document.documentElement.getAttribute('data-theme');
@@ -68,6 +102,7 @@ export const Layout: FC<PropsWithChildren> = ({ children }) => {
       <body>
         {children}
         <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE }} />
+        <script dangerouslySetInnerHTML={{ __html: PAGE_ANIM }} />
       </body>
     </html>
   );
