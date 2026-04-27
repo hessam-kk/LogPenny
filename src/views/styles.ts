@@ -405,7 +405,16 @@ export const STYLES_CHARTS = `
 @media(min-width:640px){.items-grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:900px){.items-grid{grid-template-columns:repeat(3,1fr)}}
 
-.item-card{padding:18px}
+.item-card{padding:18px;position:relative}
+.item-card-close{
+  position:absolute;top:10px;right:10px;
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  border:none;background:transparent;color:var(--ink-muted);
+  border-radius:50%;cursor:pointer;opacity:.4;
+  transition:opacity .15s,color .15s,background .15s;
+}
+.item-card-close:hover{opacity:1;color:var(--expense);background:rgba(220,38,38,.08)}
+.item-card-close svg{width:14px;height:14px}
 .item-card-title{font-weight:600;font-size:15px;margin-bottom:2px}
 .item-card-meta{font-size:12px;color:var(--ink-muted)}
 
