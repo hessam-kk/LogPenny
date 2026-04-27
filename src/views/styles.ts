@@ -386,31 +386,54 @@ select.form-control{
 @media(min-width:640px){.modal-backdrop{place-items:center;padding:24px}}
 
 .modal{
+  position:relative;
   width:100%;max-width:520px;max-height:90dvh;overflow-y:auto;
   overscroll-behavior:contain;
-  background:var(--paper-card);
+  background:color-mix(in srgb,var(--paper-card) 78%,transparent);
   border-radius:var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow:var(--shadow-lg),var(--glass-hi);border:1px solid var(--glass-border);
-  backdrop-filter:blur(32px) saturate(170%);
-  -webkit-backdrop-filter:blur(32px) saturate(170%);
+  backdrop-filter:blur(44px) saturate(190%);
+  -webkit-backdrop-filter:blur(44px) saturate(190%);
 }
+.modal::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:
+    radial-gradient(circle at 18% -12%, rgba(255,255,255,.16), transparent 46%),
+    radial-gradient(circle at 88% 108%, rgba(255,255,255,.08), transparent 44%);
+  z-index:0;
+}
+.modal>*{position:relative;z-index:1}
 @media(min-width:640px){.modal{border-radius:var(--radius-lg)}}
 
 .modal-head{
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 20px;border-bottom:1px solid var(--glass-border);
-  position:sticky;top:0;background:var(--paper-card);z-index:1;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:2;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--paper-card) 92%,transparent),color-mix(in srgb,var(--paper-card) 55%,transparent));
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  box-shadow:var(--glass-hi);
 }
-.modal-title{font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:var(--tracking-tight)}
+.modal-title{
+  font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:var(--tracking-tight);
+  display:flex;align-items:center;gap:8px;
+}
+.modal-title::before{
+  content:'';width:4px;height:16px;border-radius:2px;
+  background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 40%,transparent));
+  box-shadow:0 0 12px color-mix(in srgb,var(--accent) 60%,transparent);
+}
 
 .modal-body{padding:20px}
 
 .modal-foot{
   padding:14px 20px;border-top:1px solid var(--glass-border);
   display:flex;gap:8px;justify-content:flex-end;
-  position:sticky;bottom:0;background:var(--paper-card);z-index:1;
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  position:sticky;bottom:0;z-index:2;
+  background:linear-gradient(0deg,color-mix(in srgb,var(--paper-card) 92%,transparent),color-mix(in srgb,var(--paper-card) 55%,transparent));
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  box-shadow:0 -1px 0 var(--glass-border);
 }
 
 /* Month nav */
