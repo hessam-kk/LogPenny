@@ -73,7 +73,7 @@ export const ReportsView: FC<ReportsViewProps> = ({
           </div>
           <div class="stat anim-stat">
             <div class="stat-label">Expense</div>
-            <div class="stat-value expense anim-count" data-target={Math.abs(expense)} data-prefix="\u2212" data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(expense, currency)}</div>
+            <div class="stat-value expense anim-count" data-target={Math.abs(expense)} data-prefix={'\u2212'} data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(expense, currency)}</div>
           </div>
           <div class="stat anim-stat">
             <div class="stat-label">Net</div>
