@@ -171,7 +171,7 @@ const EntryRow: FC<EntryRowProps> = ({ entry, currency, items }) => {
   const item = items.find((i) => i.id === entry.itemId);
   const esc = JSON.stringify(entry).replace(/"/g, '&quot;');
   return (
-    <button class="entry anim-entry" onclick={`openEditModal(${esc})`} style="width:100%;text-align:left">
+    <button class="entry anim-entry" onclick={`openEditModal(${esc})`} style="width:100%;text-align:left;padding-right:8px">
       <div class="entry-day">{Number(day)}</div>
       <div class="entry-body">
         <div class="entry-title">
@@ -187,6 +187,14 @@ const EntryRow: FC<EntryRowProps> = ({ entry, currency, items }) => {
       </div>
       <div class={`entry-amount ${entry.direction === 'in' ? 'in' : 'out'}`}>
         {entry.direction === 'in' ? '+' : '\u2212'}{formatAmount(entry.amount, currency)}
+      </div>
+      <div class="entry-actions" onclick="event.stopPropagation()">
+        <button class="entry-action-btn" onclick={`openEditModal(${esc})`} aria-label="Edit" title="Edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="entry-action-btn entry-action-del" onclick={`deleteEntryById(${entry.id})`} aria-label="Delete" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
       </div>
     </button>
   );
