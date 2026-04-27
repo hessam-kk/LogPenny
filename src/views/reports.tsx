@@ -67,24 +67,24 @@ export const ReportsView: FC<ReportsViewProps> = ({
         </div>
 
         <div class="stats">
-          <div class="stat">
+          <div class="stat anim-stat">
             <div class="stat-label">Income</div>
-            <div class="stat-value income">{formatAmount(income, currency)}</div>
+            <div class="stat-value income anim-count" data-target={income} data-prefix="+" data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(income, currency)}</div>
           </div>
-          <div class="stat">
+          <div class="stat anim-stat">
             <div class="stat-label">Expense</div>
-            <div class="stat-value expense">{formatAmount(expense, currency)}</div>
+            <div class="stat-value expense anim-count" data-target={Math.abs(expense)} data-prefix="\u2212" data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>{formatAmount(expense, currency)}</div>
           </div>
-          <div class="stat">
+          <div class="stat anim-stat">
             <div class="stat-label">Net</div>
-            <div class="stat-value" style={net >= 0 ? 'color:var(--income)' : 'color:var(--expense)'}>
+            <div class="stat-value anim-count" style={net >= 0 ? 'color:var(--income)' : 'color:var(--expense)'} data-target={Math.abs(net)} data-prefix={net >= 0 ? '+' : '\u2212'} data-suffix={` ${currency === 'IRR' ? 'T' : currency}`}>
               {net >= 0 ? '+' : '\u2212'}{formatAmount(Math.abs(net), currency)}
             </div>
           </div>
         </div>
 
         {/* Daily bar chart */}
-        <div class="card">
+        <div class="card anim-card-up">
           <div class="card-title">Daily activity &mdash; {formatMonthYear(year, month, cal)}</div>
           <div class="chart-wrap" role="img" aria-label={`Bar chart of daily income and expenses for ${formatMonthYear(year, month, cal)}`}>
             <div class="chart-row">
