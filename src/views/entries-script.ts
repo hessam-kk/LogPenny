@@ -202,7 +202,7 @@ function parseImportSheet(wb, sheetName) {
   let skipped = 0;
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    if (!row || row.length < 3) { skipped++; continue; }
+    if (!row || row[0] === undefined || row[1] === undefined) { skipped++; continue; }
     const amount = Number(row[0]);
     if (!isFinite(amount) || amount === 0) { skipped++; continue; }
     const title = String(row[1] || '').trim();
