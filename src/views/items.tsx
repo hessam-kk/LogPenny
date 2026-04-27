@@ -24,11 +24,11 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
       <div class="app-shell">
         <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 12px">
           <h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:var(--tracking-tight)">Items</h1>
-          <button class="btn btn-primary btn-sm" onclick="openItemModal()">+ New item</button>
+          <button class="btn btn-primary btn-sm anim-stat" onclick="openItemModal()">+ New item</button>
         </div>
 
         {items.length === 0 ? (
-          <div class="card empty">
+          <div class="card empty anim-card-up">
             <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
             </svg>
@@ -41,7 +41,7 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
               const t = it.totals;
               const net = t ? t.income - t.expense : 0;
               return (
-                <div class="card item-card" style="display:block;color:inherit">
+                <div class="card item-card anim-item-card" style="display:block;color:inherit">
                   <div class="item-card-title">
                     <span class={hasPersian(it.title) ? 'persian' : ''}>{it.title}</span>
                   </div>
