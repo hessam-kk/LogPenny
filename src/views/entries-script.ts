@@ -119,7 +119,7 @@ async function submitEntry() {
 async function deleteEntry() {
   const id = document.getElementById('entry-id').value;
   if (!id) return;
-  if (!confirm('Delete this entry?')) return;
+  if (!(await askConfirm('Delete this entry?'))) return;
   const button = document.getElementById('delete-btn');
   button.disabled = true;
   button.textContent = 'Deleting…';
@@ -140,7 +140,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal
 // Inline delete — no modal needed
 async function deleteEntryById(id) {
   if (!id) return;
-  if (!confirm('Delete this entry?')) return;
+  if (!(await askConfirm('Delete this entry?'))) return;
   try {
     const res = await fetch('/api/v1/entries/' + id + '?account_id=' + ACCOUNT_ID, { method: 'DELETE' });
     const json = await res.json();
@@ -262,7 +262,7 @@ async function doImport() {
     document.getElementById('entry-status').textContent = 'No rows to import.';
     return;
   }
-  if (!confirm('Import ' + importData.length + ' entries?')) return;
+  if (!(await askConfirm('Import ' + importData.length + ' entries?'))) return;
   const status = document.getElementById('entry-status');
   const itemId = document.getElementById('itemId').value || '';
   try {
