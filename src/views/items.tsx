@@ -185,7 +185,7 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
           async function deleteItem() {
             const id = document.getElementById('item-id').value;
             if (!id) return;
-            if (!confirm('Archive this item? Its entries will be kept.')) return;
+            if (!(await askConfirm('Archive this item? Its entries will be kept.'))) return;
             const button = document.getElementById('item-delete-btn');
             button.disabled = true;
             button.textContent = 'Archiving\\u2026';
@@ -202,7 +202,7 @@ export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', it
           }
 
           async function archiveItem(id) {
-            if (!confirm('Archive this item? Its entries will be kept.')) return;
+            if (!(await askConfirm('Archive this item? Its entries will be kept.'))) return;
             try {
               const res = await fetch('/api/v1/items/' + id + '?account_id=' + ACCOUNT_ID, { method: 'DELETE' });
               const json = await res.json();
