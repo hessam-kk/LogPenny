@@ -54,6 +54,38 @@ const PAGE_ANIM = `
 })();
 `;
 
+const ASK_CONFIRM = `
+// In-app confirmation (works where window.confirm() is blocked, e.g. sandboxed iframes)
+window.askConfirm = function(message) {
+  return new Promise(function(resolve) {
+    var old = document.getElementById('app-confirm');
+    if (old) old.remove();
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-backdrop';
+    overlay.id = 'app-confirm';
+    overlay.style.cssText = 'z-index:500;place-items:center;padding:24px';
+    overlay.innerHTML =
+      '<div class="modal" style="max-width:360px;border-radius:var(--radius-lg)">' +
+      '<div class="modal-body" style="padding:22px 24px;font-size:14px;color:var(--ink);line-height:1.6">' + message + '</div>' +
+      '<div class="modal-foot">' +
+      '<button type="button" class="btn" id="app-confirm-cancel">Cancel</button>' +
+      '<button type="button" class="btn btn-primary" id="app-confirm-ok">Confirm</button>' +
+      '</div></div>';
+    document.body.appendChild(overlay);
+    function done(val) {
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    }
+    function onKey(e) { if (e.key === 'Escape') done(false); }
+    document.addEventListener('keydown', onKey);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) done(false); });
+    document.getElementById('app-confirm-ok').onclick = function() { done(true); };
+    document.getElementById('app-confirm-cancel').onclick = function() { done(false); };
+  });
+};
+`;
+
 const THEME_TOGGLE = `
 window.toggleTheme=function(){
   var c=document.documentElement.getAttribute('data-theme');
@@ -101,6 +133,7 @@ export const Layout: FC<PropsWithChildren> = ({ children }) => {
       </head>
       <body>
         {children}
+        <script dangerouslySetInnerHTML={{ __html: ASK_CONFIRM }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_TOGGLE }} />
         <script dangerouslySetInnerHTML={{ __html: PAGE_ANIM }} />
       </body>
