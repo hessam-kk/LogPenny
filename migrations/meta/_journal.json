@@ -15,6 +15,13 @@
       "when": 1787587935062,
       "tag": "0001_kind_kang",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787597468642,
+      "tag": "0002_big_swordsman",
+      "breakpoints": true
     }
   ]
 }
