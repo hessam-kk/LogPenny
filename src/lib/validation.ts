@@ -27,6 +27,25 @@ export async function accountExists(db: ReturnType<typeof createDb>, accountId: 
   return Boolean(account);
 }
 
+// Current authenticated user (set by the API auth middleware).
+export function currentUser(c: { get?: (key: string) => unknown }): { id: number; username: string } | null {
+  const user = c.get?.('user') as { id: number; username: string } | undefined;
+  return user ?? null;
+}
+
+export function currentUserId(c: { get?: (key: string) => unknown }): number | null {
+  return currentUser(c)?.id ?? null;
+}
+
+export async function accountBelongsToUser(db: ReturnType<typeof createDb>, accountId: number, userId: number) {
+  const [account] = await db
+    .select({ id: schema.accounts.id })
+    .from(schema.accounts)
+    .where(and(eq(schema.accounts.id, accountId), eq(schema.accounts.userId, userId)))
+    .all();
+  return Boolean(account);
+}
+
 export async function itemBelongsToAccount(db: ReturnType<typeof createDb>, itemId: number, accountId: number) {
   const [item] = await db
     .select({ id: schema.items.id })
