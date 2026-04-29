@@ -1,9 +1,33 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
+// Users: login accounts. Passwords are stored raw (plaintext) by explicit user
+// request so they can be reset manually via SQL.
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull().unique(),
+  password: text('password').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
+// Sessions: D1-backed login sessions referenced by an HttpOnly cookie.
+export const sessions = sqliteTable('sessions', {
+  token: text('token').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+});
+
 // Accounts: a money account (e.g. "Personal", "Business") with a default currency.
 export const accounts = sqliteTable('accounts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   defaultCurrency: text('default_currency').notNull().default('IRR'),
   startingBalance: integer('starting_balance').notNull().default(0),
@@ -75,6 +99,9 @@ export const entries = sqliteTable('entries', {
   deletedAt: integer('deleted_at', { mode: 'timestamp_ms' }),
 });
 
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type NewAccount = typeof accounts.$inferInsert;
 export type Category = typeof categories.$inferSelect;
