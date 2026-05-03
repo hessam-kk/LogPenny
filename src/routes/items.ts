@@ -3,7 +3,7 @@ import { eq, isNull, and, desc } from 'drizzle-orm';
 import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
-import { accountExists, categoryBelongsToAccount, getDb, isoDate, positiveInt } from '../lib/validation';
+import { accountBelongsToUser, categoryBelongsToAccount, currentUserId, getDb, isoDate, positiveInt } from '../lib/validation';
 
 const app = new Hono();
 
@@ -14,7 +14,9 @@ app.get('/', async (c) => {
   const accountNumber = positiveInt(accountId);
   if (!accountNumber) return fail(c, 'invalid account_id', 422);
   const db = getDb(c);
-  if (!(await accountExists(db, accountNumber))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
 
   // Fetch items
   const rows = await db
@@ -63,6 +65,9 @@ app.get('/:id', async (c) => {
   const accountId = positiveInt(c.req.query('account_id'));
   if (!accountId) return fail(c, 'account_id is required', 400);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [item] = await db
     .select()
     .from(schema.items)
@@ -86,7 +91,9 @@ app.post('/', async (c) => {
   const accountId = positiveInt(body.accountId);
   if (!accountId) return fail(c, 'invalid accountId', 422);
   const db = getDb(c);
-  if (!(await accountExists(db, accountId))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const categoryId = body.categoryId == null || body.categoryId === '' ? null : positiveInt(body.categoryId);
   if (body.categoryId != null && body.categoryId !== '' && !categoryId) return fail(c, 'invalid categoryId', 422);
   if (categoryId && !(await categoryBelongsToAccount(db, categoryId, accountId))) return fail(c, 'category not found for account', 422);
@@ -118,6 +125,9 @@ app.patch('/:id', async (c) => {
   const accountId = positiveInt(body.accountId ?? c.req.query('account_id'));
   if (!accountId) return fail(c, 'account_id is required', 400);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [existing] = await db.select().from(schema.items).where(and(eq(schema.items.id, id), eq(schema.items.accountId, accountId))).all();
   if (!existing) return fail(c, 'item not found', 404);
   const categoryId = body.categoryId === undefined ? undefined : body.categoryId == null || body.categoryId === '' ? null : positiveInt(body.categoryId);
@@ -151,6 +161,9 @@ app.delete('/:id', async (c) => {
   const accountId = positiveInt(c.req.query('account_id'));
   if (!accountId) return fail(c, 'account_id is required', 400);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [archived] = await db
     .update(schema.items)
     .set({ archivedAt: new Date() })

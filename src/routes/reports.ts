@@ -4,7 +4,7 @@ import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
 import { fetchMonthly, fetchBreakdown, fetchTrends } from '../lib/reports-data';
-import { getDb, isoDate, isoMonth, positiveInt } from '../lib/validation';
+import { accountBelongsToUser, currentUserId, getDb, isoDate, isoMonth, positiveInt } from '../lib/validation';
 
 const app = new Hono();
 
@@ -21,6 +21,9 @@ app.get('/monthly', async (c) => {
   const accountNumber = positiveInt(accountId);
   if (!accountNumber) return fail(c, 'invalid account_id', 422);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
   const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
 
@@ -54,6 +57,9 @@ app.get('/breakdown', async (c) => {
   const accountNumber = positiveInt(accountId);
   if (!accountNumber) return fail(c, 'invalid account_id', 422);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
   const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
 
@@ -133,6 +139,9 @@ app.get('/trends', async (c) => {
   const accountNumber = positiveInt(accountId);
   if (!accountNumber) return fail(c, 'invalid account_id', 422);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
   const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
   const now = new Date();
@@ -158,6 +167,9 @@ app.get('/balance', async (c) => {
   const accountNumber = positiveInt(accountId);
   if (!accountNumber) return fail(c, 'invalid account_id', 422);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
   const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountNumber)).all();
   if (!acct) return fail(c, 'account not found', 404);
   const row = await ((c.env as any).DB as D1Database).prepare(

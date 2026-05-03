@@ -5,7 +5,7 @@ import { createDb, schema } from '../db';
 import { ok, fail } from '../lib/response';
 import { normalizeCurrency, parseAmount } from '../lib/money';
 import { parseTtdLine } from '../lib/ttd';
-import { accountExists, categoryBelongsToAccount, getDb, isoDate, positiveInt, itemBelongsToAccount } from '../lib/validation';
+import { accountBelongsToUser, categoryBelongsToAccount, currentUserId, getDb, isoDate, positiveInt, itemBelongsToAccount } from '../lib/validation';
 
 const app = new Hono();
 
@@ -22,7 +22,9 @@ app.get('/', async (c) => {
   if (!accountNumber) return fail(c, 'invalid account_id', 422);
 
   const db = getDb(c);
-  if (!(await accountExists(db, accountNumber))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
   if (from && !isoDate(from)) return fail(c, 'invalid from date', 422);
   if (to && !isoDate(to)) return fail(c, 'invalid to date', 422);
   if (from && to && from > to) return fail(c, 'from must not be after to', 422);
@@ -61,7 +63,9 @@ app.post('/', async (c) => {
   const date = isoDate(body.date);
   if (!accountNumber) return fail(c, 'invalid accountId', 422);
   if (!date) return fail(c, 'invalid date', 422);
-  if (!(await accountExists(db, accountNumber))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
   const itemNumber = body.itemId == null || body.itemId === '' ? null : positiveInt(body.itemId);
   const categoryNumber = body.categoryId == null || body.categoryId === '' ? null : positiveInt(body.categoryId);
   if (body.itemId != null && body.itemId !== '' && !itemNumber) return fail(c, 'invalid itemId', 422);
@@ -109,7 +113,9 @@ app.post('/quick/preview', async (c) => {
   const accountId = positiveInt(body.accountId);
   if (!accountId) return fail(c, 'invalid accountId', 422);
   const db = getDb(c);
-  if (!(await accountExists(db, accountId))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const now = new Date();
   const year = body.year ? Number(body.year) : now.getFullYear();
   const month = body.month ? Number(body.month) : now.getMonth() + 1;
@@ -135,7 +141,9 @@ app.post('/quick', async (c) => {
   if (!accountId) return fail(c, 'invalid accountId', 422);
 
   const db = getDb(c);
-  if (!(await accountExists(db, accountId))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [acct] = await db
     .select()
     .from(schema.accounts)
@@ -200,9 +208,12 @@ app.patch('/:id', async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body) return fail(c, 'invalid body', 422);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
   const existing = await db.select().from(schema.entries).where(eq(schema.entries.id, id)).all();
   const entry = existing[0];
   if (!entry || entry.deletedAt) return fail(c, 'entry not found', 404);
+  if (!(await accountBelongsToUser(db, entry.accountId, userId))) return fail(c, 'entry not found', 404);
   const accountNumber = positiveInt(body.accountId ?? entry.accountId);
   if (!accountNumber || accountNumber !== entry.accountId) return fail(c, 'account mismatch', 422);
   if (body.itemId !== undefined) {
@@ -250,6 +261,9 @@ app.delete('/:id', async (c) => {
   const db = getDb(c);
   const accountId = positiveInt(c.req.query('account_id'));
   if (!accountId) return fail(c, 'account_id is required', 400);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [deleted] = await db
     .update(schema.entries)
     .set({ deletedAt: new Date(), updatedAt: new Date() })
@@ -265,6 +279,9 @@ app.post('/:id/restore', async (c) => {
   const accountId = positiveInt(c.req.query('account_id'));
   if (!accountId) return fail(c, 'account_id is required', 400);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [restored] = await db
     .update(schema.entries)
     .set({ deletedAt: null, updatedAt: new Date() })
@@ -282,7 +299,9 @@ app.post('/import', async (c) => {
   const accountId = positiveInt(body.accountId);
   if (!accountId) return fail(c, 'invalid accountId', 422);
   const db = getDb(c);
-  if (!(await accountExists(db, accountId))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [acct] = await db.select().from(schema.accounts).where(eq(schema.accounts.id, accountId)).all();
   if (!acct) return fail(c, 'account not found', 404);
   const currency = acct.defaultCurrency;

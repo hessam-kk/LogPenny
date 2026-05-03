@@ -195,8 +195,11 @@ function parseImportSheet(wb, sheetName) {
   const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
   if (!data || data.length < 2) { document.getElementById('entry-status').textContent = 'No data rows found.'; return; }
 
-  // Detect Jalali year from sheet name
-  const jalaliYear = /^\d{4}$/.test(sheetName) ? parseInt(sheetName, 10) : YEAR;
+  // Detect Jalali year from sheet name (e.g. "1405"); fall back to the viewed month's Jalali year
+  const sheetJYear = /^\d{4}$/.test(sheetName) ? parseInt(sheetName, 10) : null;
+  const jalaliYear = sheetJYear || jalaliDateOf(YEAR, MONTH, 1).jy;
+  // Running Jalali month — rows without a month name inherit the most recent named month
+  let currentJMonth = jalaliDateOf(YEAR, MONTH, 1).jm;
 
   const rows = [];
   let skipped = 0;
@@ -208,16 +211,17 @@ function parseImportSheet(wb, sheetName) {
     const title = String(row[1] || '').trim();
     if (!title) { skipped++; continue; }
 
-    // Parse date: cell might be text like "1 فروردین" or a day number
+    // Parse date: "1 فروردین", "۲ اردیبهشت", plain day numbers, or ISO
     let date = null;
     const rawDate = row[2];
     if (rawDate != null && rawDate !== '') {
-      date = guessDate(String(rawDate), jalaliYear, MONTH);
+      const parsed = guessDate(String(rawDate), jalaliYear, currentJMonth);
+      if (parsed) {
+        if (parsed.month) currentJMonth = parsed.month;
+        date = parsed.iso;
+      }
     }
-    if (!date) {
-      // Try to use current month with day=1 as fallback
-      date = YEAR + '-' + String(MONTH).padStart(2,'0') + '-01';
-    }
+    if (!date) date = jalaliToIso(jalaliYear, currentJMonth, 1);
 
     const direction = amount < 0 ? 'in' : 'out';
     const absAmount = Math.round(Math.abs(amount));
@@ -233,27 +237,111 @@ function parseImportSheet(wb, sheetName) {
   document.getElementById('entry-status').textContent = rows.length + ' rows ready to import.' + (skipped > 0 ? ' (' + skipped + ' skipped)' : '');
 }
 
-function guessDate(str, jalaliYear, fallbackMonth) {
-  // Simple Persian month parsing (duplicated from server for client preview)
-  const months = { 'فروردین':1,'اردیبهشت':2,'خرداد':3,'تیر':4,'مرداد':5,'شهریور':6,'مهر':7,'آبان':8,'آذر':9,'دی':10,'بهمن':11,'اسفند':12 };
-  const cleaned = str.trim();
-  for (const [name, mNum] of Object.entries(months)) {
-    const match = cleaned.match(new RegExp('^(\\d+)\\s*' + name + '$'));
-    if (match) {
-      const day = parseInt(match[1], 10);
-      // Approximate: map Jalali month to Gregorian month offset
-      // For preview purposes, just use current year + month offset
-      const gMonth = ((mNum - 1 + 2) % 12) + 1; // rough offset
-      return YEAR + '-' + String(gMonth).padStart(2,'0') + '-' + String(Math.min(day, 31)).padStart(2,'0');
-    }
+const PERSIAN_MONTHS = { 'فروردین':1,'اردیبهشت':2,'خرداد':3,'تیر':4,'مرداد':5,'شهریور':6,'مهر':7,'آبان':8,'آذر':9,'دی':10,'بهمن':11,'اسفند':12 };
+
+function parseFaNum(str) {
+  const s = String(str)
+    .replace(/[\u06F0-\u06F9]/g, (c) => String(c.charCodeAt(0) - 0x06F0))
+    .replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660));
+  return parseInt(s, 10);
+}
+
+// Verified Jalali calendar math (jalaali-js Borkowski algorithm, inlined for the browser)
+const J_BREAKS = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+function jDiv(a, b) { return ~~(a / b); }
+function jMod(a, b) { return a - ~~(a / b) * b; }
+function jalCalCore(jy) {
+  const gy = jy + 621;
+  let leapJ = -14, jp = J_BREAKS[0], jm = 0, jump = 0;
+  for (let i = 1; i < J_BREAKS.length; i += 1) {
+    jm = J_BREAKS[i]; jump = jm - jp;
+    if (jy < jm) break;
+    leapJ = leapJ + jDiv(jump, 33) * 8 + jDiv(jMod(jump, 33), 4);
+    jp = jm;
   }
-  // Plain day number
-  const dayNum = parseInt(cleaned.replace(/[^0-9]/g, ''), 10);
-  if (dayNum >= 1 && dayNum <= 31) {
-    return YEAR + '-' + String(fallbackMonth).padStart(2,'0') + '-' + String(Math.min(dayNum, 31)).padStart(2,'0');
+  const n = jy - jp;
+  leapJ = leapJ + jDiv(n, 33) * 8 + jDiv(jMod(n, 33) + 3, 4);
+  if (jMod(jump, 33) === 4 && jump - n === 4) leapJ += 1;
+  const leapG = jDiv(gy, 4) - jDiv((jDiv(gy, 100) + 1) * 3, 4) - 150;
+  return { gy, march: 20 + leapJ - leapG, jump, n };
+}
+function leapFromCycle(jump, n) {
+  let adjusted = n;
+  if (jump - n < 6) adjusted = n - jump + jDiv(jump + 4, 33) * 33;
+  let leap = jMod(jMod(adjusted + 1, 33) - 1, 4);
+  if (leap === -1) leap = 4;
+  return leap;
+}
+function j2d(jy, jm, jd) {
+  const r = jalCalCore(jy);
+  return g2d(r.gy, 3, r.march) + (jm - 1) * 31 - jDiv(jm, 7) * (jm - 7) + jd - 1;
+}
+function g2d(gy, gm, gd) {
+  let d = jDiv((gy + jDiv(gm - 8, 6) + 100100) * 1461, 4) + jDiv(153 * jMod(gm + 9, 12) + 2, 5) + gd - 34840408;
+  d = d - jDiv(jDiv(gy + 100100 + jDiv(gm - 8, 6), 100) * 3, 4) + 752;
+  return d;
+}
+function d2g(jdn) {
+  let j = 4 * jdn + 139361631;
+  j = j + jDiv(jDiv(4 * jdn + 183187720, 146097) * 3, 4) * 4 - 3908;
+  const i = jDiv(jMod(j, 1461), 4) * 5 + 308;
+  const gd = jDiv(jMod(i, 153), 5) + 1;
+  const gm = jMod(jDiv(i, 153), 12) + 1;
+  const gy = jDiv(j, 1461) - 100100 + jDiv(8 - gm, 6);
+  return { gy, gm, gd };
+}
+function d2j(jdn) {
+  const gy = d2g(jdn).gy;
+  let jy = Math.min(gy - 621, J_BREAKS[J_BREAKS.length - 1] - 1);
+  const r = jalCalCore(jy);
+  let k = jdn - g2d(r.gy, 3, r.march);
+  if (k >= 0) {
+    if (k <= 185) return { jy, jm: 1 + jDiv(k, 31), jd: jMod(k, 31) + 1 };
+    k -= 186;
+  } else {
+    jy -= 1;
+    k += 179;
+    if (leapFromCycle(r.jump, r.n) === 1) k += 1;
   }
-  // ISO date
-  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return cleaned;
+  return { jy, jm: 7 + jDiv(k, 30), jd: jMod(k, 30) + 1 };
+}
+function toGregorian(jy, jm, jd) { return d2g(j2d(jy, jm, jd)); }
+function toJalali(gy, gm, gd) { return d2j(g2d(gy, gm, gd)); }
+function jMonthLen(jy, jm) {
+  if (jm <= 6) return 31;
+  if (jm <= 11) return 30;
+  const r = jalCalCore(jy);
+  return leapFromCycle(r.jump, r.n) === 0 ? 30 : 29;
+}
+function jalaliToIso(jy, jm, jd) {
+  const d = Math.max(1, Math.min(jd, jMonthLen(jy, jm)));
+  const g = toGregorian(jy, jm, d);
+  return String(g.gy).padStart(4, '0') + '-' + String(g.gm).padStart(2, '0') + '-' + String(g.gd).padStart(2, '0');
+}
+function jalaliDateOf(gy, gm, gd) { return toJalali(gy, gm, gd); }
+
+// Returns { iso, month } where month is set only when the string names a Jalali month
+function guessDate(str, jalaliYear, currentJMonth) {
+  const cleaned = String(str).trim();
+
+  // Gregorian ISO: "2026-03-21"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return { iso: cleaned, month: null };
+
+  // "1 فروردین", "۲ اردیبهشت", or month-only "فروردین"
+  for (const [name, mNum] of Object.entries(PERSIAN_MONTHS)) {
+    const re = new RegExp('^(\\d+)\\s*' + name + '$');
+    const withDay = cleaned.match(re);
+    if (withDay) return { iso: jalaliToIso(jalaliYear, mNum, parseFaNum(withDay[1])), month: mNum };
+    if (cleaned === name) return { iso: jalaliToIso(jalaliYear, mNum, 1), month: mNum };
+  }
+
+  // Plain day number or range like "24-26 , 28, 30, 31" / "2 و 5" — use the first day
+  const firstNum = cleaned.match(/[0-9\u06F0-\u06F9\u0660-\u0669]+/);
+  if (firstNum) {
+    const day = parseFaNum(firstNum[0]);
+    if (day >= 1 && day <= 31) return { iso: jalaliToIso(jalaliYear, currentJMonth, day), month: null };
+  }
+
   return null;
 }
 
