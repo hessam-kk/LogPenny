@@ -1,26 +1,30 @@
 import { Hono } from 'hono';
-import { eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
-import { getDb, positiveInt } from '../lib/validation';
+import { accountBelongsToUser, currentUserId, getDb, positiveInt } from '../lib/validation';
 import { normalizeCurrency, parseAmount } from '../lib/money';
 
 const app = new Hono();
 
-// List active accounts
+// List the current user's active accounts
 app.get('/', async (c) => {
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
   const db = getDb(c);
   const rows = await db
     .select()
     .from(schema.accounts)
-    .where(isNull(schema.accounts.archivedAt))
+    .where(and(isNull(schema.accounts.archivedAt), eq(schema.accounts.userId, userId)))
     .orderBy(schema.accounts.createdAt);
   return ok(c, rows);
 });
 
 // Create
 app.post('/', async (c) => {
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
   const body = await c.req.json().catch(() => null);
   if (!body || !body.name) return fail(c, 'name is required', 422);
   const db = getDb(c);
@@ -31,6 +35,7 @@ app.post('/', async (c) => {
   const [created] = await db
     .insert(schema.accounts)
     .values({
+      userId,
       name: String(body.name),
       defaultCurrency: currency,
       startingBalance,
@@ -46,6 +51,9 @@ app.patch('/:id', async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body) return fail(c, 'invalid body', 422);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, id, userId))) return fail(c, 'account not found', 404);
   let defaultCurrency: string | undefined;
   if (body.defaultCurrency !== undefined) {
     defaultCurrency = normalizeCurrency(body.defaultCurrency) ?? undefined;
