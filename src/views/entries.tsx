@@ -5,9 +5,9 @@ import { shiftDisplayedMonth } from '../lib/jalali';
 import { hasPersian } from '../lib/persian';
 import { entriesScript } from './entries-script';
 
-interface EntriesViewProps { accounts: Account[]; account: Account; items: Item[]; entries: Entry[]; year: number; month: number; cal?: 'g' | 'j'; itemId?: number | null }
+interface EntriesViewProps { accounts: Account[]; account: Account; items: Item[]; entries: Entry[]; year: number; month: number; cal?: 'g' | 'j'; itemId?: number | null; user?: { id: number; username: string } | null }
 
-export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, entries, year, month, cal = 'g', itemId = null }) => {
+export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, entries, year, month, cal = 'g', itemId = null, user = null }) => {
   const currency = account.defaultCurrency;
   const income = entries.filter((e) => e.direction === 'in').reduce((s, e) => s + e.amount, 0);
   const expense = entries.filter((e) => e.direction === 'out').reduce((s, e) => s + e.amount, 0);
@@ -18,7 +18,7 @@ export const EntriesView: FC<EntriesViewProps> = ({ accounts, account, items, en
   const itemQ = itemId ? `item_id=${itemId}&` : '';
   const acctQ = `account_id=${account.id}&${itemQ}${calQ}`;
   return (<>
-    <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/entries" />
+    <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/entries" user={user} />
     <Tabs active="entries" accountId={account.id} cal={cal} />
     <div class="app-shell">
       <div class="month-nav"><a class="month-nav-btn" href={`/entries?${acctQ}year=${previous.gy}&month=${previous.gm}`}>&#8249; {monthLabel(previous.gy, previous.gm, cal)}</a><div class="month-nav-title">{formatMonthYear(year, month, cal)}</div><a class="month-nav-btn" href={`/entries?${acctQ}year=${next.gy}&month=${next.gm}`}>{monthLabel(next.gy, next.gm, cal)} &#8250;</a></div>

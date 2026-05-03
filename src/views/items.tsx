@@ -12,13 +12,14 @@ interface ItemsViewProps {
   account: Account;
   cal?: 'g' | 'j';
   items: ItemWithTotals[];
+  user?: { id: number; username: string } | null;
 }
 
-export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', items }) => {
+export const ItemsView: FC<ItemsViewProps> = ({ accounts, account, cal = 'g', items, user = null }) => {
   const currency = account.defaultCurrency;
   return (
     <>
-      <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/items" />
+      <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/items" user={user} />
       <Tabs active="items" accountId={account.id} cal={cal} />
 
       <div class="app-shell">

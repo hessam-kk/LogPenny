@@ -3,18 +3,20 @@ import { eq, and } from 'drizzle-orm';
 import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
-import { accountExists, getDb, positiveInt } from '../lib/validation';
+import { accountBelongsToUser, currentUserId, getDb, positiveInt } from '../lib/validation';
 
 const app = new Hono();
 
 app.get('/', async (c) => {
   const accountId = c.req.query('account_id');
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
   const db = getDb(c);
   let query = db.select().from(schema.categories).$dynamic();
   if (accountId) {
     const accountNumber = positiveInt(accountId);
     if (!accountNumber) return fail(c, 'invalid account_id', 422);
-    if (!(await accountExists(db, accountNumber))) return fail(c, 'account not found', 404);
+    if (!(await accountBelongsToUser(db, accountNumber, userId))) return fail(c, 'account not found', 404);
     query = query.where(eq(schema.categories.accountId, accountNumber));
   }
   const rows = await query.orderBy(schema.categories.name);
@@ -27,7 +29,9 @@ app.post('/', async (c) => {
   const accountId = positiveInt(body.accountId);
   if (!accountId) return fail(c, 'invalid accountId', 422);
   const db = getDb(c);
-  if (!(await accountExists(db, accountId))) return fail(c, 'account not found', 404);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [created] = await db
     .insert(schema.categories)
     .values({
@@ -48,6 +52,9 @@ app.patch('/:id', async (c) => {
   const accountId = positiveInt(body.accountId ?? c.req.query('account_id'));
   if (!accountId) return fail(c, 'account_id is required', 400);
   const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
   const [updated] = await db
     .update(schema.categories)
     .set({

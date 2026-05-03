@@ -33,10 +33,11 @@ interface ReportsViewProps {
   daily: DailyPoint[];
   breakdown: BreakdownRow[];
   trends: TrendPoint[];
+  user?: { id: number; username: string } | null;
 }
 
 export const ReportsView: FC<ReportsViewProps> = ({
-  accounts, account, year, month, cal = 'g', income, expense, daily, breakdown, trends,
+  accounts, account, year, month, cal = 'g', income, expense, daily, breakdown, trends, user = null,
 }) => {
   const currency = account.defaultCurrency;
   const net = income - expense;
@@ -56,7 +57,7 @@ export const ReportsView: FC<ReportsViewProps> = ({
 
   return (
     <>
-      <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/reports" />
+      <TopBar accounts={accounts} activeAccount={account} cal={cal} basePath="/reports" user={user} />
       <Tabs active="reports" accountId={account.id} cal={cal} />
 
       <div class="app-shell">
