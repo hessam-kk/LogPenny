@@ -10,9 +10,10 @@ interface TopBarProps {
   cal?: 'g' | 'j';
   calQuery?: string;
   basePath?: string;
+  user?: { id: number; username: string } | null;
 }
 
-export const TopBar: FC<TopBarProps> = ({ accounts, activeAccount, showAccountSwitch = true, cal = 'g', basePath = '/entries' }) => {
+export const TopBar: FC<TopBarProps> = ({ accounts, activeAccount, showAccountSwitch = true, cal = 'g', basePath = '/entries', user = null }) => {
   const calLabel = cal === 'j' ? 'ج' : 'AD';
   const calendarSuffix = cal === 'j' ? '&cal=j' : '';
   const brandHref = activeAccount ? `${basePath}?account_id=${activeAccount.id}${calendarSuffix}` : basePath;
@@ -54,6 +55,15 @@ export const TopBar: FC<TopBarProps> = ({ accounts, activeAccount, showAccountSw
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </button>
+        {user ? (
+          <a class="icon-btn" href="/logout" title="Log out" aria-label="Log out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </a>
+        ) : null}
       </div>
     </header>
   );
