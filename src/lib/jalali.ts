@@ -1,4 +1,7 @@
 // Jalali (Persian Solar) calendar helpers.
+// Calendar math delegates to jalaali-js (Borkowski algorithm, battle-tested).
+
+import { toJalaali as j2j, toGregorian as j2g } from 'jalaali-js';
 
 const PERSIAN_MONTHS = [
   'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
@@ -16,56 +19,19 @@ export function persianMonthName(month: number): string {
 }
 
 export function toJalali(gy: number, gm: number, gd: number): JalaliDate {
-  const gdm = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-  let jy = gy > 1600 ? 979 : 0;
-  let year = gy > 1600 ? gy - 1600 : gy;
-  let days = 365 * year + Math.floor((year + 3) / 4) - Math.floor((year + 99) / 100)
-    + Math.floor((year + 399) / 400) + gdm[gm - 1] + gd - 1;
-
-  if (gm > 2 && isGregorianLeapYear(gy)) days += 1;
-  jy += 33 * Math.floor(days / 12053);
-  days %= 12053;
-  jy += 4 * Math.floor(days / 1461);
-  days %= 1461;
-
-  if (days > 365) {
-    jy += Math.floor((days - 1) / 365);
-    days = (days - 1) % 365;
-  }
-
-  const jm = days < 186 ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
-  return { jy, jm, jd };
+  return j2j(gy, gm, gd);
 }
 
 export function toGregorian(jy: number, jm: number, jd: number): { gy: number; gm: number; gd: number } {
-  let year = jy > 979 ? 1600 : 621;
-  let days = jy > 979 ? (jy - 979) * 365 + Math.floor((jy - 979) / 33) * 8 + Math.floor((((jy - 979) % 33) + 3) / 4) : jy * 365 + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4);
-  days += jm <= 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186;
-  days += jd - 1;
-
-  year += 4 * Math.floor(days / 1461);
-  days %= 1461;
-  if (days > 365) {
-    year += Math.floor((days - 1) / 365);
-    days = (days - 1) % 365;
-  }
-
-  const leap = isGregorianLeapYear(year);
-  const monthLengths = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  let month = 1;
-  for (const length of monthLengths) {
-    if (days < length) break;
-    days -= length;
-    month += 1;
-  }
-  return { gy: year, gm: month, gd: days + 1 };
+  return j2g(jy, jm, jd);
 }
 
 export function gregorianMonthToJalali(gy: number, gm: number): { jy: number; jm: number } {
-  return toJalali(gy, gm, 15).jy === toJalali(gy, gm, 1).jy
-    ? { jy: toJalali(gy, gm, 15).jy, jm: toJalali(gy, gm, 15).jm }
-    : { jy: toJalali(gy, gm, 1).jy, jm: toJalali(gy, gm, 1).jm };
+  const first = toJalali(gy, gm, 1);
+  const mid = toJalali(gy, gm, 15);
+  return first.jy === mid.jy
+    ? { jy: mid.jy, jm: mid.jm }
+    : { jy: first.jy, jm: first.jm };
 }
 
 export function formatMonthYear(year: number, month: number, cal: 'g' | 'j'): string {
@@ -98,10 +64,6 @@ export function shiftDisplayedMonth(gy: number, gm: number, direction: -1 | 1, c
 export function jalaliMonthToGregorian(jy: number, jm: number): { gy: number; gm: number } {
   const g = toGregorian(jy, jm, 15);
   return { gy: g.gy, gm: g.gm };
-}
-
-function isGregorianLeapYear(year: number): boolean {
-  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
 
 function gregorianMonthName(month: number): string {
