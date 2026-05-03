@@ -1,15 +1,18 @@
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { jsxRenderer } from 'hono/jsx-renderer';
-import { isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { createDb, schema } from './db';
 import accountsRoute from './routes/accounts';
 import categoriesRoute from './routes/categories';
 import itemsRoute from './routes/items';
 import entriesRoute from './routes/entries';
 import reportsRoute from './routes/reports';
+import authRoute from './routes/auth';
+import { getSessionUser, destroySession, clearSessionCookie } from './lib/auth';
 import { Layout } from './views/layout';
 import { SetupView } from './views/setup';
+import { LoginView } from './views/login';
 import { EntriesView } from './views/entries';
 import { ItemsView } from './views/items';
 import { ReportsView } from './views/reports';
@@ -19,20 +22,33 @@ const app = new Hono();
 app.use('*', logger());
 
 const api = new Hono();
+// Require a logged-in user for every API route under /api/v1.
+// /api/v1/auth/* is mounted on the top-level app so it stays public.
+api.use('*', async (c, next) => {
+  const user = await getSessionUser(c);
+  if (!user) return c.json({ ok: false, error: 'not authenticated' }, 401);
+  (c as any).set('user', { id: user.id, username: user.username });
+  return next();
+});
 api.route('/accounts', accountsRoute);
 api.route('/categories', categoriesRoute);
 api.route('/items', itemsRoute);
 api.route('/entries', entriesRoute);
 api.route('/reports', reportsRoute);
+app.route('/api/v1/auth', authRoute);
 app.route('/api/v1', api);
 
 function db(c: any) {
   return createDb((c.env as any).DB as D1Database);
 }
 
-async function loadContext(c: any) {
+async function loadContext(c: any, user: { id: number }) {
   const d = db(c);
-  const accounts = await d.select().from(schema.accounts).where(isNull(schema.accounts.archivedAt)).all();
+  const accounts = await d
+    .select()
+    .from(schema.accounts)
+    .where(and(isNull(schema.accounts.archivedAt), eq(schema.accounts.userId, user.id)))
+    .all();
   const requestedId = c.req.query('account_id');
   let activeAccount = accounts[0] ?? null;
   if (requestedId) {
@@ -45,8 +61,22 @@ async function loadContext(c: any) {
 app.use('*', jsxRenderer(({ children }: any) => <Layout>{children}</Layout>));
 app.get('/', (c) => c.redirect('/entries'));
 
+app.get('/login', async (c) => {
+  const user = await getSessionUser(c);
+  if (user) return c.redirect('/entries');
+  return c.render(<LoginView />);
+});
+
+app.get('/logout', async (c) => {
+  await destroySession(c);
+  clearSessionCookie(c);
+  return c.redirect('/login');
+});
+
 app.get('/entries', async (c) => {
-  const { accounts, activeAccount } = await loadContext(c);
+  const user = await getSessionUser(c);
+  if (!user) return c.redirect('/login');
+  const { accounts, activeAccount } = await loadContext(c, user);
   if (!activeAccount) return c.redirect('/setup');
   const d = db(c);
   const now = new Date();
@@ -63,11 +93,13 @@ app.get('/entries', async (c) => {
   const entries = allEntries
     .filter((r: any) => r.accountId === activeAccount.id && r.date >= from && r.date <= to && (!itemId || r.itemId === itemId))
     .sort((a: any, b: any) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-  return c.render(<EntriesView accounts={accounts} account={activeAccount} items={items} entries={entries} year={year} month={month} cal={cal} itemId={itemId} />);
+  return c.render(<EntriesView accounts={accounts} account={activeAccount} items={items} entries={entries} year={year} month={month} cal={cal} itemId={itemId} user={user} />);
 });
 
 app.get('/items', async (c) => {
-  const { accounts, activeAccount } = await loadContext(c);
+  const user = await getSessionUser(c);
+  if (!user) return c.redirect('/login');
+  const { accounts, activeAccount } = await loadContext(c, user);
   if (!activeAccount) return c.redirect('/setup');
   const cal = c.req.query('cal') === 'j' ? 'j' : 'g';
   const d = db(c);
@@ -81,11 +113,13 @@ app.get('/items', async (c) => {
   const totalsMap = new Map(
     (totalsRows.results ?? []).map((r: any) => [r.item_id, { income: r.income ?? 0, expense: r.expense ?? 0, entryCount: r.entry_count ?? 0 }]),
   );
-  return c.render(<ItemsView accounts={accounts} account={activeAccount} cal={cal} items={items.map((i: any) => ({ ...i, totals: totalsMap.get(i.id) ?? null }))} />);
+  return c.render(<ItemsView accounts={accounts} account={activeAccount} cal={cal} items={items.map((i: any) => ({ ...i, totals: totalsMap.get(i.id) ?? null }))} user={user} />);
 });
 
 app.get('/reports', async (c) => {
-  const { accounts, activeAccount } = await loadContext(c);
+  const user = await getSessionUser(c);
+  if (!user) return c.redirect('/login');
+  const { accounts, activeAccount } = await loadContext(c, user);
   if (!activeAccount) return c.redirect('/setup');
   const now = new Date();
   const year = c.req.query('year') ? Number(c.req.query('year')) : now.getFullYear();
@@ -99,13 +133,13 @@ app.get('/reports', async (c) => {
   const { income, expense, daily } = await fetchMonthly(DB, activeAccount.id, year, month);
   const breakdown = await fetchBreakdown(DB, activeAccount.id, from, to);
   const trends = await fetchTrends(DB, activeAccount.id, year, `${year}-01`, `${year}-${monthStr}`);
-  return c.render(<ReportsView accounts={accounts} account={activeAccount} year={year} month={month} cal={cal} income={income} expense={expense} daily={daily} breakdown={breakdown} trends={trends} />);
+  return c.render(<ReportsView accounts={accounts} account={activeAccount} year={year} month={month} cal={cal} income={income} expense={expense} daily={daily} breakdown={breakdown} trends={trends} user={user} />);
 });
 
+// Register page (create account). Redirect logged-in users to the app.
 app.get('/setup', async (c) => {
-  const d = db(c);
-  const accounts = await d.select().from(schema.accounts).all();
-  if (accounts.length > 0) return c.redirect('/entries');
+  const user = await getSessionUser(c);
+  if (user) return c.redirect('/entries');
   return c.render(<SetupView />);
 });
 
