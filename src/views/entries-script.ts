@@ -1,9 +1,10 @@
 // Inline client script for the entries view. Exported as a string.
-export function entriesScript(accountId: number, year: number, month: number): string {
+export function entriesScript(accountId: number, year: number, month: number, cal?: 'g' | 'j'): string {
   return `
 const ACCOUNT_ID = ${accountId};
 const YEAR = ${year};
 const MONTH = ${month};
+const CAL = '${cal ?? 'g'}';
 
 function openAddModal() {
   document.getElementById('modal-title').textContent = 'New entry';
@@ -260,9 +261,17 @@ function parseImportSheet(wb, sheetName) {
   if (!data || data.length < 2) { document.getElementById('entry-status').textContent = 'No data rows found.'; return; }
 
   // Detect Jalali year from sheet name (e.g. "1405"); fall back to the viewed month's Jalali year
-  const sheetJYear = /^\d{4}$/.test(sheetName) ? parseInt(sheetName, 10) : null;
-  const jalaliYear = sheetJYear || jalaliDateOf(YEAR, MONTH, 1).jy;
-  let currentJMonth = jalaliDateOf(YEAR, MONTH, 1).jm;
+  const sheetJYear = /^\\d{4}$/.test(sheetName) ? parseInt(sheetName, 10) : null;
+  var jalaliYear, currentJMonth;
+  if (CAL === 'j') {
+    // YEAR and MONTH are already Jalali values — use them directly
+    jalaliYear = sheetJYear || YEAR;
+    currentJMonth = MONTH;
+  } else {
+    var jdFallback = jalaliDateOf(YEAR, MONTH, 1);
+    jalaliYear = sheetJYear || jdFallback.jy;
+    currentJMonth = jdFallback.jm;
+  }
 
   const flat = [];
   let skipped = 0;
@@ -289,25 +298,41 @@ function parseImportSheet(wb, sheetName) {
   }
 
   // Group into month buckets (sorted chronologically)
+  // In Jalali mode, group by Jalali month so Persian months stay intact
   const bucketMap = {};
   for (const r of flat) {
-    const monthKey = r.date.slice(0, 7);
+    var monthKey;
+    if (CAL === 'j') {
+      var dParts = r.date.split('-').map(Number);
+      var jmKey = toJalali(dParts[0], dParts[1], dParts[2]);
+      monthKey = jmKey.jy + '-' + String(jmKey.jm).padStart(2, '0');
+    } else {
+      monthKey = r.date.slice(0, 7);
+    }
     if (!bucketMap[monthKey]) bucketMap[monthKey] = [];
     bucketMap[monthKey].push(r);
   }
-  const months = Object.keys(bucketMap).sort();
-  importBuckets = months.map(m => {
-    const [gy, gm] = m.split('-').map(Number);
-    const label = new Date(gy, gm - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    return { iso: m, label, rows: bucketMap[m] };
+  var monthKeys = Object.keys(bucketMap).sort();
+  importBuckets = monthKeys.map(function(m) {
+    var label;
+    if (CAL === 'j') {
+      // Key is already Jalali: "1405-01"
+      var parts = m.split('-').map(Number);
+      label = JALALI_MONTH_NAMES[parts[1]] + ' ' + parts[0];
+    } else {
+      var parts = m.split('-').map(Number);
+      label = new Date(parts[0], parts[1] - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    return { iso: m, label: label, rows: bucketMap[m] };
   });
 
   renderBuckets();
   document.getElementById('import-sheet').onchange = function() { parseImportSheet(wb, this.value); };
-  document.getElementById('entry-status').textContent = flat.length + ' rows grouped across ' + months.length + ' months. Drag rows between months to fix the dates, then import.' + (skipped > 0 ? ' (' + skipped + ' skipped)' : '');
+  document.getElementById('entry-status').textContent = flat.length + ' rows grouped across ' + monthKeys.length + ' months. Drag rows between months to fix the dates, then import.' + (skipped > 0 ? ' (' + skipped + ' skipped)' : '');
 }
 
 const PERSIAN_MONTHS = { 'فروردین':1,'اردیبهشت':2,'خرداد':3,'تیر':4,'مرداد':5,'شهریور':6,'مهر':7,'آبان':8,'آذر':9,'دی':10,'بهمن':11,'اسفند':12 };
+const JALALI_MONTH_NAMES = ['','فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 
 function parseFaNum(str) {
   const s = String(str)
@@ -403,7 +428,7 @@ function guessDate(str, jalaliYear, currentJMonth) {
   if (!cleaned) return null;
 
   // Gregorian ISO: "2026-03-21"
-  if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return { iso: cleaned, month: null };
+  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(cleaned)) return { iso: cleaned, month: null };
 
   // Match "day month" — day can be Persian/Arabic digits, a range, or omitted entirely
   // e.g. "1 فروردین", "۱-۳۰ اردیبهشت", "7 خرداد 1405", "تیر", "1-30 مرداد"
@@ -421,9 +446,9 @@ function guessDate(str, jalaliYear, currentJMonth) {
       // Remove any range continuation like "-30" from afterDay start
       // e.g. "1-30 مرداد" -> after clean: "۱-۳۰ مرداد" -> afterDay = "-۳۰ مرداد"
       // Strip leading dash+numbers or separators until we hit the month name
-      afterDay = afterDay.replace(/^[\s\-,\u060C]+[0-9\u06F0-\u06F9\u0660-\u0669]+\s*/g, '').trim();
+      afterDay = afterDay.replace(/^[\\s\\-,\u060C]+[0-9\u06F0-\u06F9\u0660-\u0669]+\\s*/g, '').trim();
       // Also strip "و" + numbers pattern
-      afterDay = afterDay.replace(/^[وو]\s*[0-9\u06F0-\u06F9\u0660-\u0669]+\s*/g, '').trim();
+      afterDay = afterDay.replace(/^[وو]\\s*[0-9\u06F0-\u06F9\u0660-\u0669]+\\s*/g, '').trim();
       if (afterDay === name || afterDay.indexOf(name) === 0) {
         var day = parseFaNum(dayPart);
         if (day >= 1 && day <= 31) return { iso: jalaliToIso(jalaliYear, mNum, day), month: mNum };
@@ -508,9 +533,22 @@ function onRowDragEnd(e) {
 
 function moveRow(fromBucket, rowIndex, toBucket) {
   if (fromBucket === toBucket) return;
+  // Save target key before any mutation (indices may shift after splice)
+  var targetKey = importBuckets[toBucket].iso;
   const [row] = importBuckets[fromBucket].rows.splice(rowIndex, 1);
-  importBuckets[toBucket].rows.push(row);
-  // Remove empty bucket
+  // Re-date the row to the target bucket's month (keep same day)
+  var day = Number(row.date.slice(8));
+  if (CAL === 'j') {
+    var parts = targetKey.split('-').map(Number);
+    row.date = jalaliToIso(parts[0], parts[1], Math.min(day, jMonthLen(parts[0], parts[1])));
+  } else {
+    var parts = targetKey.split('-').map(Number);
+    row.date = targetKey + '-' + String(Math.min(day, new Date(parts[0], parts[1], 0).getDate())).padStart(2, '0');
+  }
+  // Find target bucket by iso (index may have shifted)
+  for (var bi = 0; bi < importBuckets.length; bi++) {
+    if (importBuckets[bi].iso === targetKey) { importBuckets[bi].rows.push(row); break; }
+  }
   if (importBuckets[fromBucket].rows.length === 0) importBuckets.splice(fromBucket, 1);
   renderBuckets();
 }
@@ -519,7 +557,20 @@ function reassignBucket(bucketIdx, targetIdx) {
   if (!targetIdx && targetIdx !== 0) return;
   const to = Number(targetIdx);
   if (to === bucketIdx || !importBuckets[to]) return;
+  const targetKey = importBuckets[to].iso;
   const moved = importBuckets[bucketIdx].rows.splice(0, importBuckets[bucketIdx].rows.length);
+  // Re-date every moved row to the target bucket's month
+  for (var mi = 0; mi < moved.length; mi++) {
+    var r = moved[mi];
+    var day = Number(r.date.slice(8));
+    if (CAL === 'j') {
+      var parts = targetKey.split('-').map(Number);
+      r.date = jalaliToIso(parts[0], parts[1], Math.min(day, jMonthLen(parts[0], parts[1])));
+    } else {
+      var parts = targetKey.split('-').map(Number);
+      r.date = targetKey + '-' + String(Math.min(day, new Date(parts[0], parts[1], 0).getDate())).padStart(2, '0');
+    }
+  }
   importBuckets[to].rows.push(...moved);
   importBuckets.splice(bucketIdx, 1);
   renderBuckets();
