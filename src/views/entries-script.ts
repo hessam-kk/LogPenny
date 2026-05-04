@@ -198,10 +198,9 @@ function parseImportSheet(wb, sheetName) {
   // Detect Jalali year from sheet name (e.g. "1405"); fall back to the viewed month's Jalali year
   const sheetJYear = /^\d{4}$/.test(sheetName) ? parseInt(sheetName, 10) : null;
   const jalaliYear = sheetJYear || jalaliDateOf(YEAR, MONTH, 1).jy;
-  // Running Jalali month — rows without a month name inherit the most recent named month
   let currentJMonth = jalaliDateOf(YEAR, MONTH, 1).jm;
 
-  const rows = [];
+  const flat = [];
   let skipped = 0;
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
@@ -210,8 +209,6 @@ function parseImportSheet(wb, sheetName) {
     if (!isFinite(amount) || amount === 0) { skipped++; continue; }
     const title = String(row[1] || '').trim();
     if (!title) { skipped++; continue; }
-
-    // Parse date: "1 فروردین", "۲ اردیبهشت", plain day numbers, or ISO
     let date = null;
     const rawDate = row[2];
     if (rawDate != null && rawDate !== '') {
@@ -222,19 +219,28 @@ function parseImportSheet(wb, sheetName) {
       }
     }
     if (!date) date = jalaliToIso(jalaliYear, currentJMonth, 1);
-
     const direction = amount < 0 ? 'in' : 'out';
     const absAmount = Math.round(Math.abs(amount));
-    rows.push({ amount: absAmount, direction, title, date, notes: row[3] ? String(row[3]).trim() : null });
+    flat.push({ amount: absAmount, direction, title, date, notes: row[3] ? String(row[3]).trim() : null, rawIndex: i });
   }
 
-  importData = rows;
-  const preview = document.getElementById('import-preview');
-  preview.hidden = rows.length === 0;
-  preview.innerHTML = rows.map(r =>
-    '<div class="ttd-preview-row"><span class="' + (r.direction === 'in' ? 'income' : 'expense') + '">' + (r.direction === 'in' ? '+' : '−') + r.amount + '</span><span dir="auto">' + escapeHtml(r.title) + '</span><time>' + r.date + '</time></div>'
-  ).join('');
-  document.getElementById('entry-status').textContent = rows.length + ' rows ready to import.' + (skipped > 0 ? ' (' + skipped + ' skipped)' : '');
+  // Group into month buckets (sorted chronologically)
+  const bucketMap = {};
+  for (const r of flat) {
+    const monthKey = r.date.slice(0, 7);
+    if (!bucketMap[monthKey]) bucketMap[monthKey] = [];
+    bucketMap[monthKey].push(r);
+  }
+  const months = Object.keys(bucketMap).sort();
+  importBuckets = months.map(m => {
+    const [gy, gm] = m.split('-').map(Number);
+    const label = new Date(gy, gm - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return { iso: m, label, rows: bucketMap[m] };
+  });
+
+  renderBuckets();
+  document.getElementById('import-sheet').onchange = function() { parseImportSheet(wb, this.value); };
+  document.getElementById('entry-status').textContent = flat.length + ' rows grouped across ' + months.length + ' months. Drag rows between months to fix the dates, then import.' + (skipped > 0 ? ' (' + skipped + ' skipped)' : '');
 }
 
 const PERSIAN_MONTHS = { 'فروردین':1,'اردیبهشت':2,'خرداد':3,'تیر':4,'مرداد':5,'شهریور':6,'مهر':7,'آبان':8,'آذر':9,'دی':10,'بهمن':11,'اسفند':12 };
@@ -345,7 +351,102 @@ function guessDate(str, jalaliYear, currentJMonth) {
   return null;
 }
 
+// --- Bucket-based import preview with drag-and-drop ---
+let importBuckets = []; // [{iso, label, rows: [{amount, direction, title, date, notes, rawIndex}]}]
+
+function renderBuckets() {
+  const container = document.getElementById('import-preview');
+  container.hidden = importBuckets.length === 0;
+  container.innerHTML = '';
+  for (let bi = 0; bi < importBuckets.length; bi++) {
+    const bucket = importBuckets[bi];
+    const totalIn = bucket.rows.filter(r => r.direction === 'in').reduce((s, r) => s + r.amount, 0);
+    const totalOut = bucket.rows.filter(r => r.direction === 'out').reduce((s, r) => s + r.amount, 0);
+    const el = document.createElement('div');
+    el.className = 'import-bucket';
+    el.setAttribute('data-bucket', bi);
+    el.innerHTML =
+      '<div class="import-bucket-head">' +
+        '<button type="button" class="import-bucket-toggle" onclick="toggleBucket(this.parentElement.parentElement)">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>' +
+        '</button>' +
+        '<div class="import-bucket-label">' + escapeHtml(bucket.label) + '</div>' +
+        '<div class="import-bucket-count">' + bucket.rows.length + ' entries</div>' +
+        '<div class="import-bucket-totals">In <span class="income">+' + totalIn + '</span> Out <span class="expense">−' + totalOut + '</span></div>' +
+        '<select class="form-control import-bucket-reassign" onchange="reassignBucket(' + bi + ', this.value)" style="width:auto;height:30px;font-size:11px;padding:2px 8px;margin-left:auto">' +
+          '<option value="">Move all to…</option>' +
+          importBuckets.map((b, idx) => (idx !== bi ? '<option value="' + idx + '">' + escapeHtml(b.label) + '</option>' : '')).join('') +
+        '</select>' +
+      '</div>' +
+      '<div class="import-bucket-rows">' +
+        bucket.rows.map((r, ri) =>
+          '<div class="import-row" draggable="true" data-bucket="' + bi + '" data-row="' + ri + '" ondragstart="onRowDragStart(event)" ondragend="onRowDragEnd(event)">' +
+            '<span class="import-row-grip" aria-hidden="true">⋮⋮</span>' +
+            '<span class="' + (r.direction === 'in' ? 'income' : 'expense') + ' import-row-amt">' + (r.direction === 'in' ? '+' : '−') + r.amount + '</span>' +
+            '<span class="import-row-title" dir="auto">' + escapeHtml(r.title) + '</span>' +
+            '<time class="import-row-date">' + r.date.slice(8) + '</time>' +
+          '</div>'
+        ).join('') +
+      '</div>';
+    el.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      if (!dragSourceBucket || dragSourceBucket === bi) return;
+      this.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
+    el.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      moveRow(dragSourceBucket, dragSourceRow, bi);
+    });
+    container.appendChild(el);
+  }
+}
+
+let dragSourceBucket = null, dragSourceRow = null;
+function onRowDragStart(e) {
+  dragSourceBucket = Number(e.target.closest('[data-bucket]').getAttribute('data-bucket'));
+  dragSourceRow = Number(e.target.closest('[data-row]').getAttribute('data-row'));
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.classList.add('dragging');
+}
+function onRowDragEnd(e) {
+  e.target.classList.remove('dragging');
+  dragSourceBucket = null;
+  dragSourceRow = null;
+}
+
+function moveRow(fromBucket, rowIndex, toBucket) {
+  if (fromBucket === toBucket) return;
+  const [row] = importBuckets[fromBucket].rows.splice(rowIndex, 1);
+  importBuckets[toBucket].rows.push(row);
+  // Remove empty bucket
+  if (importBuckets[fromBucket].rows.length === 0) importBuckets.splice(fromBucket, 1);
+  renderBuckets();
+}
+
+function reassignBucket(bucketIdx, targetIdx) {
+  if (!targetIdx && targetIdx !== 0) return;
+  const to = Number(targetIdx);
+  if (to === bucketIdx || !importBuckets[to]) return;
+  const moved = importBuckets[bucketIdx].rows.splice(0, importBuckets[bucketIdx].rows.length);
+  importBuckets[to].rows.push(...moved);
+  importBuckets.splice(bucketIdx, 1);
+  renderBuckets();
+}
+
+function toggleBucket(el) {
+  el.classList.toggle('collapsed');
+}
+
+function buildFlatImportData() {
+  const flat = [];
+  for (const b of importBuckets) flat.push(...b.rows);
+  return flat;
+}
+
 async function doImport() {
+  const importData = buildFlatImportData();
   if (!importData || importData.length === 0) {
     document.getElementById('entry-status').textContent = 'No rows to import.';
     return;
@@ -366,12 +467,16 @@ async function doImport() {
     status.textContent = 'Network error. Please try again.';
   }
 }
-
-window.toggleImport = toggleImport;
-window.handleImportFile = handleImportFile;
-window.doImport = doImport;
 window.deleteEntryById = deleteEntryById;
 window.submitEntry = submitEntry;
 window.deleteEntry = deleteEntry;
+window.toggleImport = toggleImport;
+window.hideImport = hideImport;
+window.handleImportFile = handleImportFile;
+window.doImport = doImport;
+window.toggleBucket = toggleBucket;
+window.reassignBucket = reassignBucket;
+window.onRowDragStart = onRowDragStart;
+window.onRowDragEnd = onRowDragEnd;
 `;
 }
