@@ -273,6 +273,35 @@ export const STYLES_CARDS = `
 .entry-action-btn svg{width:14px;height:14px}
 .entry-action-del:hover{color:var(--expense);background:rgba(220,38,38,.08)}
 
+/* Bulk selection */
+.list-toolbar{display:flex;justify-content:flex-end;margin-bottom:6px}
+.entry-check{
+  display:none;align-items:center;justify-content:center;
+  width:22px;height:22px;border:2px solid var(--rule);
+  border-radius:50%;flex-shrink:0;color:transparent;
+  transition:border-color .15s,background .15s,color .15s;
+}
+.entry-check svg{width:13px;height:13px}
+.select-mode .entry-check{display:flex}
+.select-mode .entry-main{pointer-events:none}
+.select-mode .entry-actions{display:none}
+.select-mode .fab{display:none}
+.entry.selected{border-color:var(--accent)}
+.entry.selected .entry-check{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+
+.bulk-bar{
+  position:fixed;left:12px;right:12px;bottom:max(12px, calc(12px + env(safe-area-inset-bottom)));
+  z-index:60;display:flex;align-items:center;gap:8px;
+  background:var(--paper-card);border:1px solid var(--rule);
+  border-radius:999px;padding:8px 14px;
+  box-shadow:var(--shadow-lg);
+  margin:0 auto;max-width:420px;
+}
+@media(min-width:640px){
+  .bulk-bar{left:50%;right:auto;transform:translateX(-50%)}
+}
+.bulk-count{font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
+
 /* Empty */
 .empty{text-align:center;padding:40px 20px;color:var(--ink-muted)}
 .empty-icon{display:block;width:40px;height:40px;margin:0 auto 12px;opacity:.3}

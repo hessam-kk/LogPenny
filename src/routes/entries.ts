@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { eq, and, gte, lte, desc, or, like, isNull } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, or, like, isNull, inArray } from 'drizzle-orm';
 import { createDb, schema } from '../db';
 
 import { ok, fail } from '../lib/response';
@@ -289,6 +289,27 @@ app.post('/:id/restore', async (c) => {
     .returning({ id: schema.entries.id, deletedAt: schema.entries.deletedAt });
   if (!restored) return fail(c, 'entry not found', 404);
   return ok(c, restored);
+});
+
+// Bulk soft-delete entries by IDs (all from the same account)
+app.post('/bulk-delete', async (c) => {
+  const body = await c.req.json().catch(() => null);
+  if (!body || !body.accountId || !Array.isArray(body.ids) || body.ids.length === 0)
+    return fail(c, 'accountId and ids are required', 422);
+  const accountId = positiveInt(body.accountId);
+  if (!accountId) return fail(c, 'invalid accountId', 422);
+  const ids = body.ids.map(positiveInt).filter(Boolean) as number[];
+  if (ids.length === 0) return fail(c, 'invalid ids', 422);
+  const db = getDb(c);
+  const userId = currentUserId(c);
+  if (!userId) return fail(c, 'not authenticated', 401);
+  if (!(await accountBelongsToUser(db, accountId, userId))) return fail(c, 'account not found', 404);
+  const deleted = await db
+    .update(schema.entries)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(schema.entries.accountId, accountId), inArray(schema.entries.id, ids), isNull(schema.entries.deletedAt)))
+    .returning({ id: schema.entries.id });
+  return ok(c, { deleted: deleted.length });
 });
 
 // Import: bulk create from pre-parsed rows (sent by client after preview)

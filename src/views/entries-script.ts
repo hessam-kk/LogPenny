@@ -135,7 +135,7 @@ async function deleteEntry() {
   }
 }
 
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (selectMode) toggleSelectMode(); else closeModal(); } });
 
 // Inline delete — no modal needed
 async function deleteEntryById(id) {
@@ -158,6 +158,71 @@ window.toggleTtd = toggleTtd;
 window.previewTtd = previewTtd;
 window.clearTtdPreview = clearTtdPreview;
 
+// --- Bulk selection ---
+let selectMode = false;
+const selectedIds = new Set();
+
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  document.body.classList.toggle('select-mode', selectMode);
+  const toggle = document.getElementById('select-toggle');
+  if (toggle) toggle.textContent = selectMode ? 'Cancel' : 'Select';
+  if (!selectMode) { selectedIds.clear(); document.querySelectorAll('.entry.selected').forEach(el => el.classList.remove('selected')); }
+  updateBulkBar();
+}
+
+function entryRowClick(button, id) {
+  if (selectMode) {
+    toggleEntrySelect(id);
+  } else {
+    openEntryFromButton(button);
+  }
+}
+
+function toggleEntrySelect(id) {
+  const row = document.querySelector('.entry[data-entry-id="' + id + '"]');
+  if (!row) return;
+  const on = !selectedIds.has(id);
+  if (on) selectedIds.add(id); else selectedIds.delete(id);
+  row.classList.toggle('selected', on);
+  updateBulkBar();
+}
+
+function selectAllVisible() {
+  document.querySelectorAll('.entry[data-entry-id]').forEach(el => {
+    const id = Number(el.getAttribute('data-entry-id'));
+    selectedIds.add(id);
+    el.classList.add('selected');
+  });
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const count = document.getElementById('bulk-count');
+  if (!bar || !count) return;
+  count.textContent = selectedIds.size;
+  bar.hidden = !selectMode;
+  const delBtn = document.getElementById('bulk-delete-btn');
+  if (delBtn) delBtn.disabled = selectedIds.size === 0;
+}
+
+async function bulkDelete() {
+  if (selectedIds.size === 0) return;
+  if (!(await askConfirm('Delete ' + selectedIds.size + ' entries?'))) return;
+  try {
+    const res = await fetch('/api/v1/entries/bulk-delete', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ accountId: ACCOUNT_ID, ids: [...selectedIds] }),
+    });
+    const json = await res.json();
+    if (json.ok) window.location.reload();
+    else alert(json.error || 'Could not delete entries.');
+  } catch { alert('Network error. Please try again.'); }
+}
+
+function hideImport() { document.getElementById('import-section').hidden = true; }
+
 let importData = null;
 function toggleImport() {
   const sec = document.getElementById('import-section');
@@ -166,7 +231,6 @@ function toggleImport() {
     document.getElementById('entry-status').textContent = 'Loading Excel library…';
   }
 }
-function hideImport() { document.getElementById('import-section').hidden = true; }
 
 function handleImportFile(event) {
   const file = event.target.files[0];
@@ -326,25 +390,51 @@ function jalaliToIso(jy, jm, jd) {
 }
 function jalaliDateOf(gy, gm, gd) { return toJalali(gy, gm, gd); }
 
+// Normalize Persian text: NFC compositing, strip ZWNJ
+function normPersian(s) {
+  return s.normalize('NFC').replace(/\u200C/g, '');
+}
+// Persian digit matcher
+var DIG = /[0-9\u06F0-\u06F9\u0660-\u0669]/;
+
 // Returns { iso, month } where month is set only when the string names a Jalali month
 function guessDate(str, jalaliYear, currentJMonth) {
-  const cleaned = String(str).trim();
+  const cleaned = normPersian(String(str).trim());
+  if (!cleaned) return null;
 
   // Gregorian ISO: "2026-03-21"
   if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return { iso: cleaned, month: null };
 
-  // "1 فروردین", "۲ اردیبهشت", or month-only "فروردین"
-  for (const [name, mNum] of Object.entries(PERSIAN_MONTHS)) {
-    const re = new RegExp('^(\\d+)\\s*' + name + '$');
-    const withDay = cleaned.match(re);
-    if (withDay) return { iso: jalaliToIso(jalaliYear, mNum, parseFaNum(withDay[1])), month: mNum };
+  // Match "day month" — day can be Persian/Arabic digits, a range, or omitted entirely
+  // e.g. "1 فروردین", "۱-۳۰ اردیبهشت", "7 خرداد 1405", "تیر", "1-30 مرداد"
+  for (var _i = 0, _ents = Object.entries(PERSIAN_MONTHS); _i < _ents.length; _i++) {
+    var rawName = _ents[_i][0];
+    var mNum = _ents[_i][1];
+    var name = normPersian(rawName);
     if (cleaned === name) return { iso: jalaliToIso(jalaliYear, mNum, 1), month: mNum };
+    // Check if cleaned starts with a day prefix followed by this month name
+    var prefixRe = new RegExp('^([0-9\u06F0-\u06F9\u0660-\u0669]+)');
+    var dayMatch = cleaned.match(prefixRe);
+    if (dayMatch) {
+      var dayPart = dayMatch[1];
+      var afterDay = cleaned.substring(dayPart.length).trim();
+      // Remove any range continuation like "-30" from afterDay start
+      // e.g. "1-30 مرداد" -> after clean: "۱-۳۰ مرداد" -> afterDay = "-۳۰ مرداد"
+      // Strip leading dash+numbers or separators until we hit the month name
+      afterDay = afterDay.replace(/^[\s\-,\u060C]+[0-9\u06F0-\u06F9\u0660-\u0669]+\s*/g, '').trim();
+      // Also strip "و" + numbers pattern
+      afterDay = afterDay.replace(/^[وو]\s*[0-9\u06F0-\u06F9\u0660-\u0669]+\s*/g, '').trim();
+      if (afterDay === name || afterDay.indexOf(name) === 0) {
+        var day = parseFaNum(dayPart);
+        if (day >= 1 && day <= 31) return { iso: jalaliToIso(jalaliYear, mNum, day), month: mNum };
+      }
+    }
   }
 
   // Plain day number or range like "24-26 , 28, 30, 31" / "2 و 5" — use the first day
-  const firstNum = cleaned.match(/[0-9\u06F0-\u06F9\u0660-\u0669]+/);
+  var firstNum = cleaned.match(/[0-9\u06F0-\u06F9\u0660-\u0669]+/);
   if (firstNum) {
-    const day = parseFaNum(firstNum[0]);
+    var day = parseFaNum(firstNum[0]);
     if (day >= 1 && day <= 31) return { iso: jalaliToIso(jalaliYear, currentJMonth, day), month: null };
   }
 
@@ -478,5 +568,10 @@ window.toggleBucket = toggleBucket;
 window.reassignBucket = reassignBucket;
 window.onRowDragStart = onRowDragStart;
 window.onRowDragEnd = onRowDragEnd;
+window.toggleSelectMode = toggleSelectMode;
+window.toggleEntrySelect = toggleEntrySelect;
+window.entryRowClick = entryRowClick;
+window.selectAllVisible = selectAllVisible;
+window.bulkDelete = bulkDelete;
 `;
 }
