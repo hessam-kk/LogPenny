@@ -19,7 +19,7 @@ server-rendered on the edge via **Hono JSX** — no client-side framework.
   `IRR`/`USD`/etc. default currency and a starting balance.
 - **Login / registration** — per-user accounts and sessions; every user only sees
   their own data. Registering auto-claims any pre-existing (unowned) accounts.
-- **TTD quick-add** — paste multi-line text like `563 قسط سوم هدفون گلسا 30` and it
+- **TTD quick-add** — paste multi-line text like `2500 grocery shopping 15` and it
   is parsed into entries (see [TTD format](#ttd-text-parsing) below).
 - **Excel import** — upload `.xlsx` files; rows are parsed (including Jalali dates,
   Persian digits, day ranges) and grouped into month buckets that you can
@@ -204,9 +204,9 @@ Quick-add accepts one entry per line. The amount token, title, and an optional
 day-of-month are separated by a tab or 2+ spaces:
 
 ```text
-563  قسط سوم هدفون گلسا  30
--400  جلسه سوم زبان (مصطفی) درآمد  28
-=640+90  پاکاسکرین ۴۴۰ تومنی و 100 گرم قهوه 28 و 30
+2500  grocery shopping  15
+-1200  freelance project payment  22
+=3400+600  cafe sales (coffee and pastries)  8
 ```
 
 - Plain numbers are **expenses**; a leading `-` or `=` marks **income**
